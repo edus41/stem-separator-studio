@@ -40,9 +40,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Active WebSocket connections
+# Global variables
 connected_websockets: List[WebSocket] = []
-current_output_dir: Optional[Path] = None
+main_event_loop: Optional[asyncio.AbstractEventLoop] = None
+
+current_job: Dict[str, Any] = {
+    "status": "idle",
+    "percent": 0.0,
+    "stage": "Listo. Seleccioná una canción para comenzar.",
+    "chunk": 0,
+    "total_chunks": 0,
+    "elapsed": "",
+    "eta": "",
+    "logs": [],
+    "stems": [],
+    "output_dir": None,
+    "input_file": None
+}
 
 class SeparateRequest(BaseModel):
     input_file: str
@@ -52,8 +66,38 @@ class SeparateRequest(BaseModel):
     quality: str = "fast"
     custom_stems: Optional[List[str]] = None
 
+@app.on_event("startup")
+async def on_startup():
+    global main_event_loop
+    main_event_loop = asyncio.get_running_loop()
+
 def broadcast_event(event: Dict[str, Any]):
-    """Send real-time event to all connected web clients via WebSockets."""
+    """Thread-safe real-time WebSocket broadcast."""
+    global current_job
+
+    event_type = event.get("type")
+    if event_type == "progress":
+        current_job["percent"] = event.get("percent", current_job["percent"])
+        current_job["stage"] = event.get("stage", current_job["stage"])
+        current_job["chunk"] = event.get("chunk", current_job["chunk"])
+        current_job["total_chunks"] = event.get("total_chunks", current_job["total_chunks"])
+        current_job["elapsed"] = event.get("elapsed", current_job["elapsed"])
+        current_job["eta"] = event.get("eta", current_job["eta"])
+    elif event_type == "log":
+        msg = event.get("message", "")
+        current_job["logs"].append(msg)
+        if len(current_job["logs"]) > 200:
+            current_job["logs"] = current_job["logs"][-200:]
+    elif event_type == "completed":
+        current_job["status"] = "completed"
+        current_job["percent"] = 100.0
+        current_job["stage"] = "¡Separación completada con éxito!"
+        current_job["stems"] = event.get("stems", [])
+        current_job["output_dir"] = event.get("output_dir")
+    elif event_type == "error":
+        current_job["status"] = "error"
+        current_job["stage"] = f"Error: {event.get('message')}"
+
     async def _send():
         dead = []
         msg = json.dumps(event)
@@ -66,28 +110,30 @@ def broadcast_event(event: Dict[str, Any]):
             if d in connected_websockets:
                 connected_websockets.remove(d)
 
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            asyncio.run_coroutine_threadsafe(_send(), loop)
-        else:
-            asyncio.run(_send())
-    except Exception:
-        pass
+    if main_event_loop and main_event_loop.is_running():
+        asyncio.run_coroutine_threadsafe(_send(), main_event_loop)
 
 @app.websocket("/ws/progress")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     connected_websockets.append(websocket)
-    # Send initial hardware info
+    # Send current hardware & job state on connect
     hw = detect_hardware()
     await websocket.send_text(json.dumps({"type": "hardware", "data": hw}))
+    await websocket.send_text(json.dumps({"type": "state", "data": current_job}))
     try:
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
         if websocket in connected_websockets:
             connected_websockets.remove(websocket)
+
+@app.get("/api/status")
+def get_status():
+    return {
+        "job": current_job,
+        "hardware": detect_hardware()
+    }
 
 @app.get("/api/hardware")
 def get_hardware():
@@ -119,9 +165,9 @@ def browse_file():
         )
         root.destroy()
         if file_path:
-            p = Path(file_path)
+            p = Path(file_path).resolve()
             default_out = str(p.parent / f"{p.stem}_Stems")
-            return {"file_path": file_path, "filename": p.name, "default_output_dir": default_out}
+            return {"file_path": str(p), "filename": p.name, "default_output_dir": default_out}
         return {"file_path": None}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -137,13 +183,16 @@ def browse_folder():
         root.attributes("-topmost", True)
         folder_path = filedialog.askdirectory(title="Seleccionar carpeta de destino")
         root.destroy()
-        return {"folder_path": folder_path or None}
+        if folder_path:
+            p = Path(folder_path).resolve()
+            return {"folder_path": str(p)}
+        return {"folder_path": None}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/open-folder")
 def open_folder(data: Dict[str, str]):
-    folder_path = data.get("folder_path")
+    folder_path = data.get("folder_path") or current_job.get("output_dir")
     if folder_path and Path(folder_path).exists():
         try:
             if sys.platform == "win32":
@@ -159,32 +208,52 @@ def open_folder(data: Dict[str, str]):
 
 @app.get("/api/audio/{filename}")
 def stream_audio(filename: str):
-    global current_output_dir
-    if current_output_dir:
-        file_path = current_output_dir / filename
+    out_dir_str = current_job.get("output_dir")
+    if out_dir_str:
+        out_dir = Path(out_dir_str)
+        file_path = out_dir / filename
         if file_path.exists():
             return FileResponse(
                 path=str(file_path),
                 media_type="audio/wav" if filename.endswith(".wav") else "audio/mpeg",
                 filename=filename
             )
-    raise HTTPException(status_code=404, detail="Audio file not found")
+    raise HTTPException(status_code=404, detail="Archivo de audio no encontrado")
 
 @app.post("/api/separate")
 def start_separation(req: SeparateRequest):
-    global current_output_dir
-    input_path = Path(req.input_file)
+    global current_job
+
+    input_path = Path(req.input_file).resolve()
     if not input_path.exists():
         raise HTTPException(status_code=400, detail="El archivo de audio no existe")
 
     output_dir = req.output_dir or str(input_path.parent / f"{input_path.stem}_Stems")
-    current_output_dir = Path(output_dir)
+    out_path = Path(output_dir).resolve()
+    out_path.mkdir(parents=True, exist_ok=True)
 
     preset_info = PRESETS.get(req.preset_key, PRESETS["vocals_inst"])
     model_key = preset_info["model_key"]
     overlap = 4 if req.quality == "high" else 2
 
-    # Execute in background thread so HTTP response returns immediately
+    # Reset job state
+    current_job["status"] = "processing"
+    current_job["percent"] = 1.0
+    current_job["stage"] = f"Iniciando separación con {preset_info['title']}..."
+    current_job["chunk"] = 0
+    current_job["total_chunks"] = 0
+    current_job["elapsed"] = ""
+    current_job["eta"] = ""
+    current_job["logs"] = [f"Iniciando trabajo para: {input_path.name}"]
+    current_job["stems"] = []
+    current_job["output_dir"] = str(out_path)
+    current_job["input_file"] = str(input_path)
+
+    broadcast_event({
+        "type": "state",
+        "data": current_job
+    })
+
     def _worker():
         try:
             pipeline = SeparationPipeline(
@@ -193,7 +262,7 @@ def start_separation(req: SeparateRequest):
             )
             pipeline.process(
                 input_file=str(input_path),
-                output_dir=output_dir,
+                output_dir=str(out_path),
                 model_key=model_key,
                 output_format=req.format,
                 overlap=overlap
@@ -204,9 +273,8 @@ def start_separation(req: SeparateRequest):
     thread = threading.Thread(target=_worker, daemon=True)
     thread.start()
 
-    return {"status": "started", "output_dir": output_dir}
+    return {"status": "started", "output_dir": str(out_path)}
 
-# Serve Frontend SPA
 @app.get("/")
 def serve_index():
     index_file = STATIC_DIR / "index.html"

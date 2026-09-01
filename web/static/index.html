@@ -37,7 +37,6 @@
     .animate-pulse-subtle {
       animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
-    /* Custom scrollbar */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -56,7 +55,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-blue-600 selection:text-white">
 
-  <!-- TOP NAVIGATION BAR -->
+  <!-- TOP BAR -->
   <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-xl sticky top-0 z-50">
     <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -74,7 +73,7 @@
 
       <!-- Hardware Detection Badge -->
       <div id="hw-badge" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/60 text-xs text-slate-300">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="hw-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
         <span id="hw-name" class="font-medium">Detectando hardware...</span>
       </div>
     </div>
@@ -253,7 +252,7 @@
       <!-- Action Button -->
       <button id="start-btn" class="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-base shadow-xl shadow-blue-600/30 flex items-center justify-center gap-3 transition-all transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed">
         <i data-lucide="play" class="w-5 h-5 fill-current"></i>
-        <span>INICIAR SEPARACIÓN DE PISTAS</span>
+        <span id="start-btn-text">INICIAR SEPARACIÓN DE PISTAS</span>
       </button>
 
       <!-- LIVE PROGRESS SECTION -->
@@ -261,9 +260,12 @@
         <div class="flex items-center justify-between text-xs">
           <span id="stage-text" class="text-slate-300 font-medium flex items-center gap-2">
             <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-blue-400"></i>
-            Iniciando inferencia neuronal...
+            <span id="stage-msg">Iniciando inferencia neuronal...</span>
           </span>
-          <span id="percent-text" class="text-blue-400 font-bold font-mono">0%</span>
+          <div class="flex items-center gap-2">
+            <span id="chunk-badge" class="hidden px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[11px]"></span>
+            <span id="percent-text" class="text-blue-400 font-bold font-mono text-sm">0%</span>
+          </div>
         </div>
 
         <!-- Progress Bar -->
@@ -272,11 +274,12 @@
         </div>
 
         <!-- Terminal Log Drawer -->
-        <details class="text-xs text-slate-400 bg-slate-950/80 rounded-xl border border-slate-800/80 p-3">
-          <summary class="cursor-pointer font-mono text-[11px] text-slate-500 hover:text-slate-400 select-none">
-            Ver registro de inferencia en tiempo real
+        <details id="log-details" open class="text-xs text-slate-400 bg-slate-950/80 rounded-xl border border-slate-800/80 p-3">
+          <summary class="cursor-pointer font-mono text-[11px] text-slate-500 hover:text-slate-400 select-none flex items-center justify-between">
+            <span>Consola de inferencia en tiempo real</span>
+            <span id="log-count" class="text-[10px] text-slate-600 font-mono">0 eventos</span>
           </summary>
-          <pre id="log-terminal" class="mt-2 font-mono text-[11px] text-slate-400 whitespace-pre-wrap max-h-40 overflow-y-auto"></pre>
+          <pre id="log-terminal" class="mt-2 font-mono text-[11px] text-slate-400 whitespace-pre-wrap max-h-48 overflow-y-auto leading-relaxed"></pre>
         </details>
       </div>
 
@@ -284,18 +287,18 @@
 
     <!-- STEP 4: STEMS STUDIO & AUDIO PLAYERS -->
     <section id="results-section" class="hidden bg-slate-900/60 backdrop-blur-md rounded-2xl border border-slate-800/80 p-6 shadow-xl space-y-6">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
             <i data-lucide="check-circle-2" class="w-6 h-6"></i>
           </div>
           <div>
             <h2 class="text-base font-bold text-white">¡Separación Finalizada con Éxito!</h2>
-            <p class="text-xs text-slate-400">Reproducí tus pistas aisladas o abrí la carpeta de destino</p>
+            <p class="text-xs text-slate-400">Escuchá tus pistas aisladas o abrí la carpeta de destino</p>
           </div>
         </div>
-        <button id="open-folder-btn" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold flex items-center gap-2 border border-slate-700 transition-all shadow-md">
-          <i data-lucide="folder-open" class="w-4 h-4 text-emerald-400"></i> Abrir Carpeta de Destino
+        <button id="open-folder-btn" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-lg shadow-emerald-600/20 shrink-0">
+          <i data-lucide="folder-open" class="w-4 h-4"></i> Abrir Carpeta de Destino
         </button>
       </div>
 
@@ -313,10 +316,28 @@
     let customOutputDir = null;
     let activeQuality = 'fast';
     let ws = null;
+    let logCount = 0;
 
     lucide.createIcons();
 
-    // Setup WebSocket
+    // Check initial state from REST API on page load
+    async function checkInitialState() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        if (data.hardware) {
+          updateHardwareBadge(data.hardware);
+        }
+        if (data.job) {
+          restoreJobState(data.job);
+        }
+      } catch (err) {
+        console.error('Error fetching initial status:', err);
+      }
+    }
+    checkInitialState();
+
+    // WebSocket Setup
     function initWebSocket() {
       const loc = window.location;
       const wsUrl = (loc.protocol === 'https:' ? 'wss://' : 'ws://') + loc.host + '/ws/progress';
@@ -326,10 +347,12 @@
         const data = JSON.parse(event.data);
         if (data.type === 'hardware') {
           updateHardwareBadge(data.data);
+        } else if (data.type === 'state') {
+          restoreJobState(data.data);
         } else if (data.type === 'log') {
           appendLog(data.message);
         } else if (data.type === 'progress') {
-          updateProgress(data.percent, data.stage, data.eta_seconds);
+          updateProgress(data.percent, data.stage, data.chunk, data.total_chunks, data.eta);
         } else if (data.type === 'completed') {
           onSeparationComplete(data);
         } else if (data.type === 'error') {
@@ -348,28 +371,68 @@
       badge.innerText = hw.hardware_badge;
       if (hw.is_gpu) {
         document.getElementById('hw-badge').className = "flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-700/60 text-xs text-emerald-300";
+        document.getElementById('hw-dot').className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
       }
     }
 
     function appendLog(msg) {
+      if (!msg) return;
       const term = document.getElementById('log-terminal');
       term.innerText += msg + '\n';
       term.scrollTop = term.scrollHeight;
+      logCount++;
+      document.getElementById('log-count').innerText = `${logCount} eventos`;
     }
 
-    function updateProgress(percent, stage, eta) {
+    function updateProgress(percent, stage, chunk, totalChunks, eta) {
       document.getElementById('progress-container').classList.remove('hidden');
-      document.getElementById('progress-bar').style.width = percent + '%';
-      document.getElementById('percent-text').innerText = Math.round(percent) + '%';
+      const pct = Math.max(0, Math.min(100, Math.round(percent)));
+      document.getElementById('progress-bar').style.width = pct + '%';
+      document.getElementById('percent-text').innerText = pct + '%';
+
       if (stage) {
-        let text = stage;
-        if (eta && eta > 0) {
-          const mins = Math.floor(eta / 60);
-          const secs = Math.round(eta % 60);
-          text += ` • ETA: ${mins > 0 ? mins + 'm ' : ''}${secs}s`;
-        }
-        document.getElementById('stage-text').innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-blue-400"></i> ${text}`;
+        document.getElementById('stage-msg').innerText = stage;
+      }
+
+      const chunkBadge = document.getElementById('chunk-badge');
+      if (chunk && totalChunks) {
+        chunkBadge.classList.remove('hidden');
+        chunkBadge.innerText = `Bloque ${chunk}/${totalChunks} ${eta ? '• ETA: ' + eta : ''}`;
+      } else {
+        chunkBadge.classList.add('hidden');
+      }
+    }
+
+    function restoreJobState(job) {
+      if (!job) return;
+
+      if (job.input_file) {
+        selectedFilePath = job.input_file;
+        const name = job.input_file.split('\\').pop().split('/').pop();
+        document.getElementById('selected-filename').innerHTML = `🎵 <span class="text-blue-400 font-bold">${name}</span>`;
+      }
+      if (job.output_dir) {
+        customOutputDir = job.output_dir;
+        document.getElementById('output-dir-text').innerText = job.output_dir;
+      }
+
+      if (job.logs && job.logs.length > 0) {
+        const term = document.getElementById('log-terminal');
+        term.innerText = job.logs.join('\n') + '\n';
+        term.scrollTop = term.scrollHeight;
+        logCount = job.logs.length;
+        document.getElementById('log-count').innerText = `${logCount} eventos`;
+      }
+
+      if (job.status === 'processing') {
+        document.getElementById('progress-container').classList.remove('hidden');
+        updateProgress(job.percent, job.stage, job.chunk, job.total_chunks, job.eta);
+        const btn = document.getElementById('start-btn');
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>SEPARANDO PISTAS...</span>`;
         lucide.createIcons();
+      } else if (job.status === 'completed' && job.stems && job.stems.length > 0) {
+        onSeparationComplete(job);
       }
     }
 
@@ -452,6 +515,7 @@
 
       document.getElementById('results-section').classList.add('hidden');
       document.getElementById('log-terminal').innerText = '';
+      logCount = 0;
       updateProgress(2, 'Preparando motor de inferencia...');
 
       try {
@@ -484,7 +548,7 @@
       const listContainer = document.getElementById('stems-list');
       listContainer.innerHTML = '';
 
-      data.stems.forEach(stem => {
+      (data.stems || []).forEach(stem => {
         const card = document.createElement('div');
         card.className = "p-4 rounded-xl bg-slate-950/70 border border-slate-800 flex flex-col gap-3 shadow-md";
         card.innerHTML = `
@@ -494,7 +558,7 @@
               <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">${stem.size_mb} MB</span>
             </div>
           </div>
-          <audio controls class="w-full h-8 rounded-lg outline-none" src="${stem.url}"></audio>
+          <audio controls class="w-full h-9 rounded-lg outline-none bg-slate-900" src="${stem.url}"></audio>
           <div class="text-[11px] text-slate-400 truncate font-mono">${stem.filename}</div>
         `;
         listContainer.appendChild(card);

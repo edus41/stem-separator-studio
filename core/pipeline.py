@@ -4,13 +4,13 @@ import os
 import sys
 import time
 import shutil
-import tempfile
 import logging
 from pathlib import Path
 from typing import List, Callable, Optional, Set, Dict, Any
 from audio_separator.separator import Separator
 from .models_config import AVAILABLE_MODELS
 from .hardware import detect_hardware
+from .progress_tracker import ProgressStreamWrapper, UnifiedLogHandler
 
 # Stdout protection for headless / GUI runners
 if sys.stdout is None:
@@ -29,18 +29,20 @@ class SeparationPipeline:
         self.event_callback = event_callback or (lambda data: None)
         self.hardware_info = detect_hardware()
 
-    def _emit(self, event_type: str, data: Dict[str, Any]):
+    def _emit(self, data: Dict[str, Any]):
         try:
-            payload = {"type": event_type, "timestamp": time.time(), **data}
-            self.event_callback(payload)
+            if "timestamp" not in data:
+                data["timestamp"] = time.time()
+            self.event_callback(data)
         except Exception:
             pass
 
     def _log(self, text: str):
-        self._emit("log", {"message": text})
+        self._emit({"type": "log", "message": text})
 
     def _progress(self, percent: float, stage: str, eta_seconds: Optional[float] = None):
-        self._emit("progress", {
+        self._emit({
+            "type": "progress",
             "percent": min(100.0, max(0.0, percent)),
             "stage": stage,
             "eta_seconds": eta_seconds
@@ -67,73 +69,99 @@ class SeparationPipeline:
         if not model_info:
             raise ValueError(f"Modelo no reconocido: {model_key}")
 
-        self._log(f"==================================================")
+        self._log("=" * 60)
         self._log(f"Iniciando separación de audio")
         self._log(f"Canción: {input_path.name}")
         self._log(f"Hardware: {self.hardware_info['hardware_badge']}")
-        self._log(f"Modelo IA: {model_info['display_name']}")
+        self._log(f"Modelo: {model_info['display_name']}")
         self._log(f"Carpeta destino: {out_path}")
-        self._log(f"Formato: {output_format} | Calidad Overlap: {overlap}")
-        self._log(f"==================================================")
+        self._log(f"Formato: {output_format} | Solapamiento: {overlap}")
+        self._log("=" * 60)
 
-        self._progress(5.0, "Cargando arquitectura y pesos del modelo...")
+        # Attach unified log handler and stream wrappers
+        orig_stdout = sys.stdout
+        orig_stderr = sys.stderr
+        stdout_wrapper = ProgressStreamWrapper(orig_stdout, self._emit)
+        stderr_wrapper = ProgressStreamWrapper(orig_stderr, self._emit)
+        sys.stdout = stdout_wrapper
+        sys.stderr = stderr_wrapper
 
-        if model_key == "hybrid_pro":
-            generated_files = self._run_hybrid(input_path, out_path, selected_stems, output_format, overlap)
-        else:
-            generated_files = self._run_single(input_path, out_path, model_info, selected_stems, output_format, overlap)
+        log_handler = UnifiedLogHandler(self._emit)
+        root_logger = logging.getLogger()
+        root_logger.addHandler(log_handler)
+        separator_logger = logging.getLogger("audio_separator")
+        separator_logger.addHandler(log_handler)
 
-        elapsed = round(time.time() - start_time, 1)
-        self._progress(100.0, "¡Separación completada con éxito!")
-        self._log(f"Proceso finalizado en {elapsed} segundos. {len(generated_files)} pistas listas.")
+        try:
+            self._progress(3.0, "Cargando arquitectura y pesos del modelo...")
 
-        result_stems = []
-        for fp in generated_files:
-            p = Path(fp)
-            if p.exists():
-                size_mb = round(p.stat().st_size / (1024 * 1024), 2)
-                # Determine stem label
-                label = "Pista"
-                stem_type = "other"
-                name_lower = p.name.lower()
-                if "vocals" in name_lower or "vocal" in name_lower or "voz" in name_lower:
-                    label = "Voz (Vocals)"
-                    stem_type = "vocals"
-                elif "instrumental" in name_lower or "inst" in name_lower or "no_vocals" in name_lower:
-                    label = "Base Instrumental"
-                    stem_type = "instrumental"
-                elif "drums" in name_lower or "bateria" in name_lower or "drum" in name_lower:
-                    label = "Batería (Drums)"
-                    stem_type = "drums"
-                elif "bass" in name_lower or "bajo" in name_lower:
-                    label = "Bajo (Bass)"
-                    stem_type = "bass"
-                elif "guitar" in name_lower or "guitarra" in name_lower:
-                    label = "Guitarra (Guitar)"
-                    stem_type = "guitar"
-                elif "piano" in name_lower:
-                    label = "Piano (Piano)"
-                    stem_type = "piano"
-                elif "other" in name_lower or "otros" in name_lower:
-                    label = "Otros / Sintetizadores"
+            if model_key == "hybrid_pro":
+                generated_files = self._run_hybrid(input_path, out_path, selected_stems, output_format, overlap)
+            else:
+                generated_files = self._run_single(input_path, out_path, model_info, selected_stems, output_format, overlap)
+
+            elapsed = round(time.time() - start_time, 1)
+            self._progress(100.0, "¡Separación completada con éxito!")
+            self._log(f"Proceso finalizado en {elapsed} segundos.")
+
+            # Scan output directory for all generated stem files
+            result_stems = []
+            valid_exts = {".wav", ".mp3", ".flac", ".m4a"}
+            for p in out_path.iterdir():
+                if p.is_file() and p.suffix.lower() in valid_exts and input_path.stem in p.stem:
+                    size_mb = round(p.stat().st_size / (1024 * 1024), 2)
+                    label = "Pista"
                     stem_type = "other"
+                    name_lower = p.name.lower()
+                    if "vocals" in name_lower or "vocal" in name_lower or "voz" in name_lower:
+                        label = "Voz (Vocals)"
+                        stem_type = "vocals"
+                    elif "instrumental" in name_lower or "inst" in name_lower:
+                        label = "Base Instrumental"
+                        stem_type = "instrumental"
+                    elif "drums" in name_lower or "bateria" in name_lower or "drum" in name_lower:
+                        label = "Batería (Drums)"
+                        stem_type = "drums"
+                    elif "bass" in name_lower or "bajo" in name_lower:
+                        label = "Bajo (Bass)"
+                        stem_type = "bass"
+                    elif "guitar" in name_lower or "guitarra" in name_lower:
+                        label = "Guitarra (Guitar)"
+                        stem_type = "guitar"
+                    elif "piano" in name_lower:
+                        label = "Piano (Piano)"
+                        stem_type = "piano"
+                    elif "other" in name_lower or "otros" in name_lower:
+                        label = "Otros / Sintetizadores"
+                        stem_type = "other"
 
-                result_stems.append({
-                    "label": label,
-                    "stem_type": stem_type,
-                    "filename": p.name,
-                    "full_path": str(p),
-                    "size_mb": size_mb,
-                    "url": f"/api/audio/{p.name}"
-                })
+                    result_stems.append({
+                        "label": label,
+                        "stem_type": stem_type,
+                        "filename": p.name,
+                        "full_path": str(p),
+                        "size_mb": size_mb,
+                        "url": f"/api/audio/{p.name}"
+                    })
 
-        self._emit("completed", {
-            "output_dir": str(out_path),
-            "stems": result_stems,
-            "elapsed_seconds": elapsed
-        })
+            self._log(f"Total de pistas generadas: {len(result_stems)}")
+            for stem in result_stems:
+                self._log(f"  ✓ {stem['label']}: {stem['filename']} ({stem['size_mb']} MB)")
 
-        return result_stems
+            self._emit({
+                "type": "completed",
+                "output_dir": str(out_path),
+                "stems": result_stems,
+                "elapsed_seconds": elapsed
+            })
+
+            return result_stems
+
+        finally:
+            sys.stdout = orig_stdout
+            sys.stderr = orig_stderr
+            root_logger.removeHandler(log_handler)
+            separator_logger.removeHandler(log_handler)
 
     def _run_single(
         self,
@@ -151,8 +179,8 @@ class SeparationPipeline:
         if arch == "mdxc":
             mdxc_params = {"overlap": overlap, "batch_size": 1}
 
-        self._progress(15.0, f"Inicializando modelo {model_info['display_name']}...")
-        self._log(f"Cargando modelo neuronal: {model_filename}...")
+        self._progress(5.0, f"Cargando modelo {model_info['display_name']}...")
+        self._log(f"Cargando pesos de red neuronal: {model_filename}...")
 
         separator = Separator(
             output_dir=str(out_path),
@@ -163,8 +191,8 @@ class SeparationPipeline:
 
         separator.load_model(model_filename=model_filename)
 
-        self._progress(30.0, "Procesando audio (Extrayendo frecuencias y separando fuentes)...")
-        self._log("Ejecutando inferencia de red neuronal...")
+        self._progress(10.0, "Iniciando análisis de espectro y separación por bandas...")
+        self._log("Procesando señal de audio con Transformer...")
 
         raw_outputs = separator.separate(str(input_path))
 
@@ -173,9 +201,7 @@ class SeparationPipeline:
             fp = out_path / f if not Path(f).is_absolute() else Path(f)
             if fp.exists():
                 final_files.append(str(fp))
-                self._log(f"✓ Pista generada con éxito: {fp.name}")
 
-        self._progress(90.0, "Guardando archivos y finalizando renderizado...")
         return final_files
 
     def _run_hybrid(
@@ -187,9 +213,10 @@ class SeparationPipeline:
         overlap: int
     ) -> List[str]:
         self._log("--- ETAPA 1: Extracción Vocal Ultra-HD (Mel-Band RoFormer) ---")
-        self._progress(10.0, "Etapa 1/2: Extrayendo Voz e Instrumental puro con Mel-Band RoFormer...")
+        self._progress(5.0, "Etapa 1/2: Extrayendo Voz e Instrumental puro...")
 
-        temp_dir = Path(tempfile.mkdtemp(prefix="hybrid_sep_"))
+        temp_dir = Path(out_path / "_temp_hybrid")
+        temp_dir.mkdir(parents=True, exist_ok=True)
         try:
             roformer_info = AVAILABLE_MODELS["mel_band_roformer"]
             sep_step1 = Separator(
@@ -206,9 +233,9 @@ class SeparationPipeline:
 
             for f in step1_files:
                 fp = temp_dir / f if not Path(f).is_absolute() else Path(f)
-                if "(Vocals)" in fp.name or "_Vocals" in fp.name:
+                if "(Vocals)" in fp.name or "_Vocals" in fp.name or "(vocals)" in fp.name:
                     vocals_file = fp
-                elif "(Instrumental)" in fp.name or "_Instrumental" in fp.name:
+                elif "(Instrumental)" in fp.name or "_Instrumental" in fp.name or "(instrumental)" in fp.name:
                     instrumental_file = fp
 
             final_files = []
