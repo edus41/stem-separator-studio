@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+.venv/
+venv/
+ENV/
+
+# Model Checkpoints (weights are downloaded automatically by the app)
+models/*.ckpt
+models/*.th
+models/*.onnx
+models/*.yaml
+models/*.json
+models/
+
+# Outputs
+*_Stems/
+*.wav
+*.mp3
+*.flac
+*.m4a
+
+# OS Files
+.DS_Store
+Thumbs.db
+*.log
