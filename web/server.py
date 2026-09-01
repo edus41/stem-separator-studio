@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from core.hardware import detect_hardware
 from core.models_config import PRESETS, AVAILABLE_MODELS, STEM_LABELS
 from core.pipeline import SeparationPipeline
+from core.dialogs import pick_audio_file, pick_folder
 
 # Stdout protection
 if sys.stdout is None:
@@ -117,7 +118,6 @@ def broadcast_event(event: Dict[str, Any]):
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     connected_websockets.append(websocket)
-    # Send current hardware & job state on connect
     hw = detect_hardware()
     await websocket.send_text(json.dumps({"type": "hardware", "data": hw}))
     await websocket.send_text(json.dumps({"type": "state", "data": current_job}))
@@ -149,46 +149,22 @@ def get_presets():
 
 @app.post("/api/browse-file")
 def browse_file():
-    """Opens native OS file explorer dialog."""
-    try:
-        import tkinter as tk
-        from tkinter import filedialog
-        root = tk.Tk()
-        root.withdraw()
-        root.attributes("-topmost", True)
-        file_path = filedialog.askopenfilename(
-            title="Seleccionar archivo de música",
-            filetypes=[
-                ("Archivos de audio", "*.mp3 *.wav *.flac *.m4a *.ogg *.aac *.wma"),
-                ("Todos los archivos", "*.*")
-            ]
-        )
-        root.destroy()
-        if file_path:
-            p = Path(file_path).resolve()
-            default_out = str(p.parent / f"{p.stem}_Stems")
-            return {"file_path": str(p), "filename": p.name, "default_output_dir": default_out}
-        return {"file_path": None}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """Opens native OS file explorer dialog safely without Tkinter."""
+    file_path = pick_audio_file()
+    if file_path:
+        p = Path(file_path).resolve()
+        default_out = str(p.parent / f"{p.stem}_Stems")
+        return {"file_path": str(p), "filename": p.name, "default_output_dir": default_out}
+    return {"file_path": None}
 
 @app.post("/api/browse-folder")
 def browse_folder():
-    """Opens native OS folder picker dialog."""
-    try:
-        import tkinter as tk
-        from tkinter import filedialog
-        root = tk.Tk()
-        root.withdraw()
-        root.attributes("-topmost", True)
-        folder_path = filedialog.askdirectory(title="Seleccionar carpeta de destino")
-        root.destroy()
-        if folder_path:
-            p = Path(folder_path).resolve()
-            return {"folder_path": str(p)}
-        return {"folder_path": None}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """Opens native OS folder picker dialog safely without Tkinter."""
+    folder_path = pick_folder()
+    if folder_path:
+        p = Path(folder_path).resolve()
+        return {"folder_path": str(p)}
+    return {"folder_path": None}
 
 @app.post("/api/open-folder")
 def open_folder(data: Dict[str, str]):
