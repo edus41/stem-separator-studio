@@ -42,23 +42,21 @@ def resolve_stem_metadata(filename: str) -> Dict[str, str]:
     # 2. Harmonies & Backing Choirs
     elif "harmonie" in name_lower or "harmony" in name_lower or "adlib" in name_lower or "ad-lib" in name_lower:
         return {"label": "🎶 Armonías Vocales y Ad-libs", "stem_type": "vocal_harmonies"}
-    elif ("backing" in name_lower and "vocal" in name_lower) or "coro" in name_lower or "choir" in name_lower:
+    elif ("backing" in name_lower and "vocal" in name_lower) or "choir" in name_lower or "coro" in name_lower:
         return {"label": "🗣️ Coros de Fondo (Backing Choirs)", "stem_type": "backing_vocals"}
 
     # 3. Dry Lead vs Reverb
-    elif "dry" in name_lower and "lead" in name_lower:
+    elif "lead" in name_lower and "dry" in name_lower:
         return {"label": "🎤 Voz Líder Seca (Dry Lead)", "stem_type": "lead_dry"}
-    elif ("room" in name_lower and "reverb" in name_lower) or ("reverb" in name_lower and "ambient" in name_lower):
+    elif "reverb" in name_lower or "ambien" in name_lower or "room" in name_lower:
         return {"label": "🌊 Ambiente / Reverb de Sala", "stem_type": "reverb_room"}
     elif "(noreverb)" in name_lower or "_noreverb" in name_lower:
         return {"label": "🧹 Audio Seco (Sin Reverb)", "stem_type": "dry"}
-    elif "(reverb)" in name_lower or "_reverb" in name_lower:
-        return {"label": "🌊 Reverberación y Eco Aislado", "stem_type": "reverb"}
 
     # 4. Standard & Instrument stems
     elif "lead" in name_lower and "vocal" in name_lower:
         return {"label": "🎤 Voz Principal (Lead Vocals)", "stem_type": "lead_vocals"}
-    elif "(vocals)" in name_lower or "_vocals" in name_lower or "vocal" in name_lower or "voz" in name_lower:
+    elif "(vocals)" in name_lower or "_vocals" in name_lower or "vocal" in name_lower:
         return {"label": "🎤 Voz Principal (Vocals)", "stem_type": "vocals"}
     elif "(instrumental)" in name_lower or "_instrumental" in name_lower or "inst" in name_lower:
         return {"label": "🎸 Base Instrumental", "stem_type": "instrumental"}
@@ -66,16 +64,16 @@ def resolve_stem_metadata(filename: str) -> Dict[str, str]:
         return {"label": "🥁 Batería Completa (Drums)", "stem_type": "drums"}
     elif "(bass)" in name_lower or "_bass" in name_lower or "bajo" in name_lower:
         return {"label": "🎸 Bajo (Bass)", "stem_type": "bass"}
-    elif "acoustic_guitar" in name_lower or "acoust" in name_lower:
+    elif "acoustic_guitar" in name_lower:
         return {"label": "🎸 Guitarra Acústica", "stem_type": "acoustic_guitar"}
-    elif "electric_guitar" in name_lower or "elect" in name_lower:
+    elif "electric_guitar" in name_lower:
         return {"label": "🎸 Guitarra Eléctrica", "stem_type": "electric_guitar"}
     elif "(guitar)" in name_lower or "_guitar" in name_lower or "guitarra" in name_lower:
         return {"label": "🎸 Guitarra (Guitar)", "stem_type": "guitar"}
     elif "(piano)" in name_lower or "_piano" in name_lower:
         return {"label": "🎹 Piano (Piano)", "stem_type": "piano"}
-    elif "(other)" in name_lower or "_other" in name_lower:
-        return {"label": "🔊 Sintetizadores y Otros (Synths & FX)", "stem_type": "other"}
+    elif "(other)" in name_lower or "_other" in name_lower or "synth" in name_lower:
+        return {"label": "🔊 Sintetizadores y FX (Synths & FX)", "stem_type": "other"}
 
     return {"label": "Pista Aislada", "stem_type": "other"}
 
@@ -272,9 +270,9 @@ class SeparationPipeline:
 
             for f in step1_files:
                 fp = temp_dir / f if not Path(f).is_absolute() else Path(f)
-                if "(Vocals)" in fp.name or "_Vocals" in fp.name or "(vocals)" in fp.name:
+                if "(vocals)" in fp.name.lower() or "_vocals" in fp.name.lower():
                     vocals_file = fp
-                elif "(Instrumental)" in fp.name or "_Instrumental" in fp.name or "(instrumental)" in fp.name:
+                else:
                     instrumental_file = fp
 
             final_files = []
@@ -305,7 +303,7 @@ class SeparationPipeline:
 
                 for f in step2_files:
                     fp = out_path / f if not Path(f).is_absolute() else Path(f)
-                    if "(Vocals)" in fp.name or "(vocals)" in fp.name:
+                    if "(vocals)" in fp.name.lower() or "_vocals" in fp.name.lower():
                         try:
                             fp.unlink()
                         except Exception:
@@ -330,13 +328,13 @@ class SeparationPipeline:
         options: Dict[str, bool]
     ) -> List[str]:
         """
-        Hierarchical Master 14-Stems Studio Cascade:
-        Stage 1: Mel-Band RoFormer (Vocals vs Instrumental)
-        Stage 2: Mel-Band RoFormer Karaoke (Lead Vocals vs Backing/Harmonies)
-        Stage 3: Vocal Harmonies vs Backing Choirs
-        Stage 4: Mel-Band RoFormer De-Reverb on Lead Vocals (Dry Lead + Room Reverb)
-        Stage 5: Demucs v4 6S (Bass, Guitar, Piano, Synths/Other, Drums)
-        Stage 6: MDX23C DrumSep (Kick, Snare, Toms, Hi-Hat, Ride, Crash)
+        Hierarchical Master 14-Stems Studio Cascade with clean intermediate pipelines:
+        Stage 1: Mel-Band RoFormer -> raw_v.wav (Vocals), raw_i.wav (Instrumental)
+        Stage 2: Karaoke RoFormer on raw_v.wav -> raw_l.wav (Lead), raw_b.wav (Backing/Harmonies)
+        Stage 3: Harmonies Separator on raw_b.wav -> Vocal Harmonies, Backing Choirs
+        Stage 4: De-Reverb on raw_l.wav -> Dry Lead, Room Reverb Residual
+        Stage 5: Demucs 6S on raw_i.wav -> Bass, Guitar, Piano, Synths & FX, raw_d.wav (Drums)
+        Stage 6: MDX23C DrumSep on raw_d.wav -> Kick, Snare, Toms, Hi-Hat, Ride, Crash
         """
         temp_dir = Path(out_path / "_temp_multitrack_master")
         temp_dir.mkdir(parents=True, exist_ok=True)
@@ -347,8 +345,10 @@ class SeparationPipeline:
             self._log("=== ETAPA 1/6: Extracción Vocal Ultra-HD (Mel-Band RoFormer) ===")
             self._progress(5.0, "Etapa 1/6: Extrayendo Voz e Instrumental puro...")
 
+            sep1_dir = temp_dir / "s1"
+            sep1_dir.mkdir(parents=True, exist_ok=True)
             sep1 = Separator(
-                output_dir=str(temp_dir / "stage1"),
+                output_dir=str(sep1_dir),
                 output_format=output_format,
                 model_file_dir=str(self.models_dir),
                 mdxc_params={"overlap": overlap, "batch_size": 1}
@@ -356,118 +356,134 @@ class SeparationPipeline:
             sep1.load_model(model_filename=AVAILABLE_MODELS["mel_band_roformer"]["model_filename"])
             s1_files = sep1.separate(str(input_path))
 
-            vocals_file = None
-            instrumental_file = None
+            raw_v = None
+            raw_i = None
             for f in s1_files:
-                fp = (temp_dir / "stage1" / f) if not Path(f).is_absolute() else Path(f)
-                if "(Vocals)" in fp.name or "_Vocals" in fp.name or "(vocals)" in fp.name:
-                    vocals_file = fp
-                elif "(Instrumental)" in fp.name or "_Instrumental" in fp.name or "(instrumental)" in fp.name:
-                    instrumental_file = fp
+                fp = sep1_dir / f if not Path(f).is_absolute() else Path(f)
+                name_low = fp.name.lower()
+                if "(vocals)" in name_low or "_vocals" in name_low:
+                    raw_v = temp_dir / "raw_v.wav"
+                    shutil.copy2(fp, raw_v)
+                else:  # MelBandRoformer saves instrumental as (other) or (instrumental)
+                    raw_i = temp_dir / "raw_i.wav"
+                    shutil.copy2(fp, raw_i)
 
-            # === STAGE 2 & 3: VOCAL BRANCH (LEAD, HARMONIES, BACKING CHOIRS, DE-REVERB) ===
-            if vocals_file and vocals_file.exists():
-                self._log("=== ETAPA 2/6: Desglose Vocal (Voz Líder vs. Acompañamiento con Karaoke RoFormer) ===")
+            # === STAGE 2: KARAOKE SEPARATION (LEAD VS BACKING) ===
+            raw_l = None
+            raw_b = None
+            if raw_v and raw_v.exists():
+                self._log("=== ETAPA 2/6: Separación de Voz Principal vs. Coros (Karaoke RoFormer) ===")
                 self._progress(20.0, "Etapa 2/6: Separando Voz Principal de Coros y Armonías...")
 
+                sep2_dir = temp_dir / "s2"
+                sep2_dir.mkdir(parents=True, exist_ok=True)
                 sep2 = Separator(
-                    output_dir=str(temp_dir / "stage2"),
+                    output_dir=str(sep2_dir),
                     output_format=output_format,
                     model_file_dir=str(self.models_dir),
                     mdxc_params={"overlap": overlap, "batch_size": 1}
                 )
                 sep2.load_model(model_filename=AVAILABLE_MODELS["karaoke_roformer"]["model_filename"])
-                s2_files = sep2.separate(str(vocals_file))
-
-                raw_lead = None
-                raw_backing = None
+                s2_files = sep2.separate(str(raw_v))
 
                 for f in s2_files:
-                    fp = (temp_dir / "stage2" / f) if not Path(f).is_absolute() else Path(f)
-                    if "(Vocals)" in fp.name or "_Vocals" in fp.name or "(vocals)" in fp.name:
-                        raw_lead = fp
-                    elif "(Instrumental)" in fp.name or "_Instrumental" in fp.name or "(instrumental)" in fp.name:
-                        raw_backing = fp
+                    fp = sep2_dir / f if not Path(f).is_absolute() else Path(f)
+                    name_low = fp.name.lower()
+                    if "(vocals)" in name_low:
+                        raw_l = temp_dir / "raw_l.wav"
+                        shutil.copy2(fp, raw_l)
+                    elif "(instrumental)" in name_low:
+                        raw_b = temp_dir / "raw_b.wav"
+                        shutil.copy2(fp, raw_b)
 
-                # Stage 3: Harmonies extraction on raw_backing
-                if raw_backing and raw_backing.exists():
-                    self._log("=== ETAPA 3/6: Desglose de Armonías Vocales y Ad-libs vs. Coros de Fondo ===")
-                    self._progress(35.0, "Etapa 3/6: Aislano Armonías y Segundas Voces...")
+            # === STAGE 3: HARMONIES VS BACKING CHOIRS ===
+            if raw_b and raw_b.exists():
+                self._log("=== ETAPA 3/6: Desglose de Armonías Vocales y Ad-libs vs. Coros de Fondo ===")
+                self._progress(35.0, "Etapa 3/6: Aislando Armonías y Segundas Voces...")
 
-                    sep_harm = Separator(
-                        output_dir=str(temp_dir / "stage_harm"),
+                sep3_dir = temp_dir / "s3"
+                sep3_dir.mkdir(parents=True, exist_ok=True)
+                sep3 = Separator(
+                    output_dir=str(sep3_dir),
+                    output_format=output_format,
+                    model_file_dir=str(self.models_dir),
+                    mdxc_params={"overlap": overlap, "batch_size": 1}
+                )
+                sep3.load_model(model_filename=AVAILABLE_MODELS["harmonies_roformer"]["model_filename"])
+                s3_files = sep3.separate(str(raw_b))
+
+                for f in s3_files:
+                    fp = sep3_dir / f if not Path(f).is_absolute() else Path(f)
+                    name_low = fp.name.lower()
+                    if "(vocals)" in name_low:
+                        dest = out_path / f"{input_path.stem}_(Vocal_Harmonies_Adlibs).{output_format.lower()}"
+                        shutil.copy2(fp, dest)
+                        final_files.append(str(dest))
+                        self._log(f"  ✓ 2. Armonías Vocales y Ad-libs: {dest.name}")
+                    elif "(instrumental)" in name_low:
+                        dest = out_path / f"{input_path.stem}_(Backing_Choirs).{output_format.lower()}"
+                        shutil.copy2(fp, dest)
+                        final_files.append(str(dest))
+                        self._log(f"  ✓ 3. Coros de Fondo: {dest.name}")
+
+            # === STAGE 4: DE-REVERB ON LEAD VOCALS ===
+            if raw_l and raw_l.exists():
+                self._log("=== ETAPA 4/6: Limpieza Acústica De-Reverb en Voz Líder ===")
+                self._progress(45.0, "Etapa 4/6: Generando Acapella 100% Seca y Reverb Aislado...")
+
+                try:
+                    sep4_dir = temp_dir / "s4"
+                    sep4_dir.mkdir(parents=True, exist_ok=True)
+                    sep4 = Separator(
+                        output_dir=str(sep4_dir),
                         output_format=output_format,
                         model_file_dir=str(self.models_dir),
                         mdxc_params={"overlap": overlap, "batch_size": 1}
                     )
-                    sep_harm.load_model(model_filename=AVAILABLE_MODELS["harmonies_roformer"]["model_filename"])
-                    sharm_files = sep_harm.separate(str(raw_backing))
+                    sep4.load_model(model_filename=AVAILABLE_MODELS["dereverb"]["model_filename"])
+                    s4_files = sep4.separate(str(raw_l))
 
-                    for f in sharm_files:
-                        fp = (temp_dir / "stage_harm" / f) if not Path(f).is_absolute() else Path(f)
-                        if "(Vocals)" in fp.name or "_Vocals" in fp.name or "(vocals)" in fp.name:
-                            dest = out_path / f"{input_path.stem}_(Vocal_Harmonies_Adlibs).{output_format.lower()}"
+                    for f in s4_files:
+                        fp = sep4_dir / f if not Path(f).is_absolute() else Path(f)
+                        name_low = fp.name.lower()
+                        if "(noreverb)" in name_low or "_noreverb" in name_low:
+                            dest = out_path / f"{input_path.stem}_(Lead_Vocals_Dry).{output_format.lower()}"
                             shutil.copy2(fp, dest)
                             final_files.append(str(dest))
-                            self._log(f"  ✓ 2. Armonías Vocales y Ad-libs: {dest.name}")
-                        elif "(Instrumental)" in fp.name or "_Instrumental" in fp.name or "(instrumental)" in fp.name:
-                            dest = out_path / f"{input_path.stem}_(Backing_Choirs).{output_format.lower()}"
+                            self._log(f"  ✓ 1. Voz Líder Seca: {dest.name}")
+                        elif "(reverb)" in name_low or "_reverb" in name_low:
+                            dest = out_path / f"{input_path.stem}_(Room_Ambience_Reverb).{output_format.lower()}"
                             shutil.copy2(fp, dest)
                             final_files.append(str(dest))
-                            self._log(f"  ✓ 3. Coros de Fondo: {dest.name}")
+                            self._log(f"  ✓ 14. Sala / Reverb Residual: {dest.name}")
+                except Exception as e:
+                    self._log(f"Aviso De-Reverb: {e}. Guardando voz líder directa.")
+                    dest = out_path / f"{input_path.stem}_(Lead_Vocals).{output_format.lower()}"
+                    shutil.copy2(raw_l, dest)
+                    final_files.append(str(dest))
 
-                # Stage 4: De-Reverb on Lead Vocals
-                if raw_lead and raw_lead.exists():
-                    self._log("=== ETAPA 4/6: Limpieza Acústica De-Reverb en Voz Líder ===")
-                    self._progress(45.0, "Etapa 4/6: Generando Acapella 100% Seca y Reverb Aislado...")
-
-                    try:
-                        sep_dry = Separator(
-                            output_dir=str(temp_dir / "stage_dry"),
-                            output_format=output_format,
-                            model_file_dir=str(self.models_dir),
-                            mdxc_params={"overlap": overlap, "batch_size": 1}
-                        )
-                        sep_dry.load_model(model_filename=AVAILABLE_MODELS["dereverb"]["model_filename"])
-                        sdry_files = sep_dry.separate(str(raw_lead))
-
-                        for f in sdry_files:
-                            fp = (temp_dir / "stage_dry" / f) if not Path(f).is_absolute() else Path(f)
-                            if "(No Reverb)" in fp.name or "(noreverb)" in fp.name or "_noreverb" in fp.name:
-                                dest = out_path / f"{input_path.stem}_(Lead_Vocals_Dry).{output_format.lower()}"
-                                shutil.copy2(fp, dest)
-                                final_files.append(str(dest))
-                                self._log(f"  ✓ 1. Voz Líder Seca: {dest.name}")
-                            elif "(Reverb)" in fp.name or "(reverb)" in fp.name or "_reverb" in fp.name:
-                                dest = out_path / f"{input_path.stem}_(Room_Ambience_Reverb).{output_format.lower()}"
-                                shutil.copy2(fp, dest)
-                                final_files.append(str(dest))
-                                self._log(f"  ✓ 14. Sala / Reverb Residual: {dest.name}")
-                    except Exception as e:
-                        self._log(f"Fallback: Guardando voz líder estándar: {e}")
-                        dest = out_path / f"{input_path.stem}_(Lead_Vocals).{output_format.lower()}"
-                        shutil.copy2(raw_lead, dest)
-                        final_files.append(str(dest))
-
-            # === STAGE 5: INSTRUMENTS (BASS, GUITAR, PIANO, SYNTHS/OTHER, DRUMS) ===
-            drums_file = None
-            if instrumental_file and instrumental_file.exists():
+            # === STAGE 5: INSTRUMENTS (DEMUCS 6S) ===
+            raw_d = None
+            if raw_i and raw_i.exists():
                 self._log("=== ETAPA 5/6: Desglose Instrumental (Demucs v4 6-Stems) ===")
                 self._progress(60.0, "Etapa 5/6: Separando Bajo, Guitarra, Piano, Sintes y Batería...")
 
+                sep5_dir = temp_dir / "s5"
+                sep5_dir.mkdir(parents=True, exist_ok=True)
                 sep5 = Separator(
-                    output_dir=str(temp_dir / "stage5"),
+                    output_dir=str(sep5_dir),
                     output_format=output_format,
                     model_file_dir=str(self.models_dir)
                 )
                 sep5.load_model(model_filename=AVAILABLE_MODELS["demucs_6s"]["model_filename"])
-                s5_files = sep5.separate(str(instrumental_file))
+                s5_files = sep5.separate(str(raw_i))
 
                 for f in s5_files:
-                    fp = (temp_dir / "stage5" / f) if not Path(f).is_absolute() else Path(f)
+                    fp = sep5_dir / f if not Path(f).is_absolute() else Path(f)
                     name_low = fp.name.lower()
                     if "(drums)" in name_low or "_drums" in name_low:
-                        drums_file = fp
+                        raw_d = temp_dir / "raw_d.wav"
+                        shutil.copy2(fp, raw_d)
                     elif "(bass)" in name_low or "_bass" in name_low:
                         dest = out_path / f"{input_path.stem}_(Bass).{output_format.lower()}"
                         shutil.copy2(fp, dest)
@@ -489,26 +505,44 @@ class SeparationPipeline:
                         final_files.append(str(dest))
                         self._log(f"  ✓ 7. Sintetizadores y Otros: {dest.name}")
 
-            # === STAGE 6: DRUMSEP (KICK, SNARE, TOMS, HI-HAT, RIDE, CRASH) ===
-            if drums_file and drums_file.exists():
+            # === STAGE 6: DRUMSEP (6 PIECES) ===
+            if raw_d and raw_d.exists():
                 self._log("=== ETAPA 6/6: Deconstrucción de Batería en 6 Canales (MDX23C DrumSep) ===")
                 self._progress(80.0, "Etapa 6/6: Descomponiendo Bombo, Caja, Toms, Hi-Hat, Ride y Crash...")
 
+                sep6_dir = temp_dir / "s6"
+                sep6_dir.mkdir(parents=True, exist_ok=True)
                 sep6 = Separator(
-                    output_dir=str(out_path),
+                    output_dir=str(sep6_dir),
                     output_format=output_format,
                     model_file_dir=str(self.models_dir),
                     mdxc_params={"overlap": overlap, "batch_size": 1}
                 )
                 sep6.load_model(model_filename=AVAILABLE_MODELS["drumsep"]["model_filename"])
-                s6_files = sep6.separate(str(drums_file))
+                s6_files = sep6.separate(str(raw_d))
 
                 for f in s6_files:
-                    fp = out_path / f if not Path(f).is_absolute() else Path(f)
-                    if fp.exists():
-                        final_files.append(str(fp))
-                        meta = resolve_stem_metadata(fp.name)
-                        self._log(f"  ✓ {meta['label']}: {fp.name}")
+                    fp = sep6_dir / f if not Path(f).is_absolute() else Path(f)
+                    name_low = fp.name.lower()
+                    if "(kick)" in name_low or "_kick" in name_low:
+                        dest = out_path / f"{input_path.stem}_(Kick).{output_format.lower()}"
+                    elif "(snare)" in name_low or "_snare" in name_low:
+                        dest = out_path / f"{input_path.stem}_(Snare).{output_format.lower()}"
+                    elif "(toms)" in name_low or "_toms" in name_low:
+                        dest = out_path / f"{input_path.stem}_(Toms).{output_format.lower()}"
+                    elif "(hh)" in name_low or "_hh" in name_low:
+                        dest = out_path / f"{input_path.stem}_(HiHat).{output_format.lower()}"
+                    elif "(ride)" in name_low or "_ride" in name_low:
+                        dest = out_path / f"{input_path.stem}_(Ride).{output_format.lower()}"
+                    elif "(crash)" in name_low or "_crash" in name_low:
+                        dest = out_path / f"{input_path.stem}_(Crash).{output_format.lower()}"
+                    else:
+                        dest = out_path / f"{input_path.stem}_{fp.name}"
+
+                    shutil.copy2(fp, dest)
+                    final_files.append(str(dest))
+                    meta = resolve_stem_metadata(dest.name)
+                    self._log(f"  ✓ {meta['label']}: {dest.name}")
 
             return final_files
 
