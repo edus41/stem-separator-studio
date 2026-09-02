@@ -1,15 +1,16 @@
-# Stem Separator Studio — Modern Web / Desktop Launcher
+# Stem Separator Studio — Ultimate Launcher
 
 import os
 import sys
 import time
 import socket
+import asyncio
 import webbrowser
 import threading
 import uvicorn
 from pathlib import Path
 
-# Redirect stdout/stderr if None (pythonw mode)
+# UTF-8 and Stdout protection
 if sys.stdout is None:
     sys.stdout = open(os.devnull, "w")
 if sys.stderr is None:
@@ -18,6 +19,14 @@ if sys.stderr is None:
 PROJECT_ROOT = Path(__file__).parent.resolve()
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+
+# Windows asyncio Proactor socket exception filter
+def silence_winerror_10054(loop, context):
+    exception = context.get("exception")
+    if isinstance(exception, ConnectionResetError) or (isinstance(exception, OSError) and getattr(exception, "winerror", None) == 10054):
+        return  # Harmless Windows socket reset when browser closes or refreshes
+    if loop.default_exception_handler:
+        loop.default_exception_handler(context)
 
 def find_free_port(start_port=7860):
     for port in range(start_port, start_port + 50):
@@ -31,15 +40,23 @@ def open_browser_delayed(url):
     webbrowser.open(url)
 
 def main():
+    if sys.platform == "win32":
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.set_exception_handler(silence_winerror_10054)
+        except Exception:
+            pass
+
     port = find_free_port()
     url = f"http://127.0.0.1:{port}"
 
     print("=" * 60)
-    print("  🎧 STEM SEPARATOR STUDIO v2.0")
-    print("  Mel-Band RoFormer • BS-RoFormer • Demucs v4")
+    print("  🎧 STEM SEPARATOR STUDIO v2.5 ULTIMATE")
+    print("  Mel-Band RoFormer • DrumSep 6S • Karaoke • DeReverb • Demucs v4")
     print("=" * 60)
-    print(f"Iniciando servidor web en: {url}")
-    print("Abriendo interfaz moderna en tu navegador...")
+    print(f"Servidor web local activo en: {url}")
+    print("Abriendo interfaz de estudio en tu navegador...")
     print("-" * 60)
 
     # Launch browser automatically
