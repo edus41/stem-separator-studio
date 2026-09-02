@@ -3,15 +3,16 @@
 import os
 import sys
 import json
+import zipfile
+import io
 import asyncio
 import threading
 import subprocess
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Header
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -31,7 +32,7 @@ MODELS_DIR = PROJECT_ROOT / "models"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 STATIC_DIR = PROJECT_ROOT / "web" / "static"
 
-app = FastAPI(title="Stem Separator Studio API")
+app = FastAPI(title="Stem Separator Studio API", version="2.5.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -87,8 +88,8 @@ def broadcast_event(event: Dict[str, Any]):
     elif event_type == "log":
         msg = event.get("message", "")
         current_job["logs"].append(msg)
-        if len(current_job["logs"]) > 200:
-            current_job["logs"] = current_job["logs"][-200:]
+        if len(current_job["logs"]) > 300:
+            current_job["logs"] = current_job["logs"][-300:]
     elif event_type == "completed":
         current_job["status"] = "completed"
         current_job["percent"] = 100.0
@@ -183,18 +184,74 @@ def open_folder(data: Dict[str, str]):
     return {"success": False, "error": "Carpeta no encontrada"}
 
 @app.get("/api/audio/{filename}")
-def stream_audio(filename: str):
+def stream_audio(filename: str, request: Request, range: Optional[str] = Header(None)):
+    """
+    HTTP 206 Partial Content range-aware audio streaming for instant seek and scrubbing.
+    """
     out_dir_str = current_job.get("output_dir")
-    if out_dir_str:
-        out_dir = Path(out_dir_str)
-        file_path = out_dir / filename
-        if file_path.exists():
-            return FileResponse(
-                path=str(file_path),
-                media_type="audio/wav" if filename.endswith(".wav") else "audio/mpeg",
-                filename=filename
-            )
-    raise HTTPException(status_code=404, detail="Archivo de audio no encontrado")
+    if not out_dir_str:
+        raise HTTPException(status_code=404, detail="No active output directory")
+
+    file_path = Path(out_dir_str) / filename
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="Archivo de audio no encontrado")
+
+    file_size = file_path.stat().st_size
+    media_type = "audio/wav" if filename.endswith(".wav") else "audio/mpeg"
+
+    if range is not None:
+        parts = range.replace("bytes=", "").split("-")
+        start = int(parts[0]) if parts[0] else 0
+        end = int(parts[1]) if len(parts) > 1 and parts[1] else file_size - 1
+        end = min(end, file_size - 1)
+        chunk_size = end - start + 1
+
+        def iter_file():
+            with open(file_path, "rb") as f:
+                f.seek(start)
+                remaining = chunk_size
+                while remaining > 0:
+                    read_bytes = min(remaining, 64 * 1024)
+                    data = f.read(read_bytes)
+                    if not data:
+                        break
+                    remaining -= len(data)
+                    yield data
+
+        headers = {
+            "Content-Range": f"bytes {start}-{end}/{file_size}",
+            "Accept-Ranges": "bytes",
+            "Content-Length": str(chunk_size),
+            "Content-Type": media_type,
+        }
+        return StreamingResponse(iter_file(), status_code=206, headers=headers)
+
+    return FileResponse(path=str(file_path), media_type=media_type, filename=filename)
+
+@app.get("/api/download-zip")
+def download_all_zip():
+    """Packages all generated stems into a ZIP file for one-click download."""
+    out_dir_str = current_job.get("output_dir")
+    if not out_dir_str or not Path(out_dir_str).exists():
+        raise HTTPException(status_code=404, detail="No hay archivos generados para descargar")
+
+    out_path = Path(out_dir_str)
+    audio_files = [p for p in out_path.iterdir() if p.is_file() and p.suffix.lower() in [".wav", ".mp3", ".flac", ".m4a"]]
+    if not audio_files:
+        raise HTTPException(status_code=404, detail="No se encontraron stems de audio en la carpeta")
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for f in audio_files:
+            zip_file.write(f, arcname=f.name)
+
+    zip_buffer.seek(0)
+    zip_name = f"{out_path.name}.zip"
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{zip_name}"'}
+    )
 
 @app.post("/api/separate")
 def start_separation(req: SeparateRequest):

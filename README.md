@@ -1,29 +1,29 @@
-# 🎧 Stem Separator Studio
+# 🎧 Stem Separator Studio — Ultimate Edition
 
-**Stem Separator Studio** is a modern, cross-platform audio stem separation suite powered by state-of-the-art AI models: **Mel-Band RoFormer**, **BS-RoFormer**, and **Demucs v4**.
+**Stem Separator Studio** is a state-of-the-art, open-source audio source separation suite powered by the world's most advanced AI architectures: **Mel-Band RoFormer**, **MDX23C DrumSep**, **BS-RoFormer**, and **Demucs v4**.
 
-It features an ultra-modern, intuitive Web UI with real-time hardware acceleration detection (NVIDIA CUDA, Apple Silicon MPS, DirectML, and Multi-Core CPU), live progress and ETA calculation, and an integrated multi-track stem audio player.
+It features an ultra-modern, cross-platform Web UI with real-time hardware acceleration detection (NVIDIA CUDA, Apple Silicon MPS, DirectML, and Multi-Core AVX2 CPU), live chunk-by-chunk progress reporting with ETA, an integrated multi-track audio player with Solo/Mute controls, and one-click ZIP batch download.
 
 ---
 
-## ✨ Features
+## ✨ SOTA AI Models & Presets
 
-- **🌟 Mel-Band RoFormer (Kim / Big SYHFT V1):** World #1 SOTA model for ultra-clean vocal extraction with zero instrumental bleed and no phase artifacts.
-- **⚡ BS-RoFormer (Viperx-1297):** Industry standard high-fidelity vocal and instrumental separation.
-- **🥁 Demucs v4 FT (4 Stems):** Separates into Vocals, Drums, Bass, and Other.
-- **🎸 Demucs v4 6S (6 Stems):** Separates into Vocals, Drums, Bass, Guitar, Piano, and Other.
-- **🎛️ Hybrid Pro Cascade Pipeline:** Extracts pristine vocals with Mel-Band RoFormer, then separates the clean backing track with Demucs for 100% vocal-free instrument stems.
-- **🖥️ Hardware Auto-Detection:** Automatically leverages NVIDIA CUDA, Apple Silicon Metal (MPS), or optimized AVX2/MKL multi-core CPU.
-- **⏱️ Real-Time Progress & ETA:** Live percentage progress bar, step indicators, and detailed logs via WebSockets.
-- **🎵 In-Browser Stems Player:** Immediately listen, solo, and preview generated stems right from the interface.
-- **🌍 100% Cross-Platform:** Works identically on Windows, macOS, and Linux.
+| Preset | AI Model Architecture | Output Stems | Key Benefit |
+|---|---|---|---|
+| **🌟 Vocals & Instrumental** | `MelBandRoformerBigSYHFTV1` (MDXC) | `Vocals`, `Instrumental` | **#1 in the World** for ultra-clean acapellas with zero bleed. |
+| **🥁 6-Piece Drum Kit** | `MDX23C-DrumSep` | `Kick`, `Snare`, `Toms`, `Hi-Hat`, `Ride`, `Crash` | Dissects full acoustic drums into 6 separate mixable stems. |
+| **🗣️ Lead vs. Backing Vocals** | `mel_band_roformer_karaoke` | `Lead Vocals`, `Backing / Harmonies` | Isolates lead vocals from harmonies and background choirs. |
+| **🎸 Full Band (6 Stems)** | `htdemucs_6s` | `Vocals`, `Drums`, `Bass`, `Guitar`, `Piano`, `Other` | Complete 6-instrument decomposition for music production. |
+| **🥁 Standard Band (4 Stems)**| `htdemucs_ft` | `Vocals`, `Drums`, `Bass`, `Other` | Classic 4-track separation with high balance. |
+| **🧹 De-Reverb & De-Echo** | `dereverb_mel_band_roformer` | `Dry Audio (No Reverb)`, `Reverb Residual` | Removes room acoustics and reverb (19.17 dB SDR). |
+| **🎛️ Hybrid Pro Cascade** | Mel-Band RoFormer + Demucs 6S | `Vocals`, `Drums`, `Bass`, `Guitar`, `Piano`, `Other`, `Instrumental` | Studio cascade: pure vocals + 100% vocal-bleed-free instruments. |
 
 ---
 
 ## 🚀 Quick Start
 
 ### 🪟 Windows
-Double click `Stem_Separator_Studio.bat` or run:
+Double-click `Stem_Separator_Studio.bat` or run in terminal:
 ```cmd
 run.bat
 ```
@@ -35,43 +35,27 @@ chmod +x run.sh
 ./run.sh
 ```
 
+The app will start the local server and automatically open the studio interface in your default browser at `http://127.0.0.1:7860`.
+
 ---
 
-## 📦 Manual Installation
+## 🧪 Automated Testing Suite
 
-1. **Clone the repository:**
+The project includes an end-to-end automated test suite verifying hardware detection, model configs, process-isolated native dialogs, progress tracking regex streams, FastAPI REST endpoints, and synthetic audio separation:
+
 ```bash
-git clone https://github.com/edus41/stem-separator-studio.git
-cd stem-separator-studio
+python tests/run_tests.py
 ```
-
-2. **Create a virtual environment:**
-```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
-
-3. **Install dependencies:**
-```bash
-pip install -r requirements.txt
-```
-
-4. **Launch the application:**
-```bash
-python main.py
-```
-
-The app will start the local server and automatically open the modern interface in your default browser at `http://127.0.0.1:7860`.
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Backend:** Python 3.10+, PyTorch, FastAPI, Uvicorn, WebSockets.
-- **Frontend:** Modern HTML5, Tailwind CSS, Lucide Icons, Vanilla JavaScript.
-- **AI Models:** Band-Split RoFormer (BS-RoFormer), Mel-Band RoFormer, Demucs v4.
+- **Backend:** Python 3.10+, PyTorch 2.4+, FastAPI, Uvicorn, WebSockets.
+- **Frontend:** HTML5, Tailwind CSS, Lucide Icons, Vanilla JavaScript SPA with Range-aware audio streaming.
+- **Models:** Band-Split RoFormer (BS-RoFormer), Mel-Band RoFormer, MDX23C DrumSep, Demucs v4.
 
 ---
 
 ## 📄 License
-MIT License. Built for musicians, producers, and audio enthusiasts.
+MIT License. Built with ❤️ for audio engineers, producers, remixers, and musicians.

@@ -8,7 +8,7 @@ import logging
 from pathlib import Path
 from typing import List, Callable, Optional, Set, Dict, Any
 from audio_separator.separator import Separator
-from .models_config import AVAILABLE_MODELS
+from .models_config import AVAILABLE_MODELS, STEM_LABELS
 from .hardware import detect_hardware
 from .progress_tracker import ProgressStreamWrapper, UnifiedLogHandler
 
@@ -17,6 +17,51 @@ if sys.stdout is None:
     sys.stdout = open(os.devnull, "w")
 if sys.stderr is None:
     sys.stderr = open(os.devnull, "w")
+
+def resolve_stem_metadata(filename: str) -> Dict[str, str]:
+    """
+    Intelligently maps generated stem filenames to human-friendly labels and types.
+    """
+    name_lower = filename.lower()
+    
+    # 1. DrumSep individual stems
+    if "(kick)" in name_lower or "_kick" in name_lower:
+        return {"label": "🥁 Bombo (Kick)", "stem_type": "kick"}
+    elif "(snare)" in name_lower or "_snare" in name_lower:
+        return {"label": "🥁 Redoblante / Caja (Snare)", "stem_type": "snare"}
+    elif "(toms)" in name_lower or "(tom)" in name_lower or "_toms" in name_lower:
+        return {"label": "🥁 Toms (Toms)", "stem_type": "toms"}
+    elif "(hh)" in name_lower or "(hihat)" in name_lower or "(hi-hat)" in name_lower or "_hh" in name_lower:
+        return {"label": "🥁 Hi-Hat (Charles)", "stem_type": "hh"}
+    elif "(ride)" in name_lower or "_ride" in name_lower:
+        return {"label": "🥁 Platillo Ride", "stem_type": "ride"}
+    elif "(crash)" in name_lower or "_crash" in name_lower:
+        return {"label": "🥁 Platillos Crash", "stem_type": "crash"}
+
+    # 2. De-Reverb stems
+    elif "(noreverb)" in name_lower or "_noreverb" in name_lower or "(dry)" in name_lower:
+        return {"label": "🧹 Audio Seco (Sin Reverb)", "stem_type": "dry"}
+    elif "(reverb)" in name_lower or "_reverb" in name_lower or "(no dry)" in name_lower:
+        return {"label": "🌊 Reverberación y Eco Aislado", "stem_type": "reverb"}
+
+    # 3. Standard & Instrument stems
+    elif "(vocals)" in name_lower or "_vocals" in name_lower or "vocal" in name_lower or "voz" in name_lower:
+        return {"label": "🎤 Voz (Vocals)", "stem_type": "vocals"}
+    elif "(instrumental)" in name_lower or "_instrumental" in name_lower or "inst" in name_lower:
+        return {"label": "🎸 Base Instrumental", "stem_type": "instrumental"}
+    elif "(drums)" in name_lower or "_drums" in name_lower or "bateria" in name_lower:
+        return {"label": "🥁 Batería (Drums)", "stem_type": "drums"}
+    elif "(bass)" in name_lower or "_bass" in name_lower or "bajo" in name_lower:
+        return {"label": "🎸 Bajo (Bass)", "stem_type": "bass"}
+    elif "(guitar)" in name_lower or "_guitar" in name_lower or "guitarra" in name_lower:
+        return {"label": "🎸 Guitarra (Guitar)", "stem_type": "guitar"}
+    elif "(piano)" in name_lower or "_piano" in name_lower:
+        return {"label": "🎹 Piano (Piano)", "stem_type": "piano"}
+    elif "(other)" in name_lower or "_other" in name_lower:
+        return {"label": "🔊 Otros / Sintes", "stem_type": "other"}
+
+    return {"label": "Pista Aislada", "stem_type": "other"}
+
 
 class SeparationPipeline:
     def __init__(
@@ -70,12 +115,12 @@ class SeparationPipeline:
             raise ValueError(f"Modelo no reconocido: {model_key}")
 
         self._log("=" * 60)
-        self._log(f"Iniciando separación de audio")
+        self._log("Iniciando separación de audio de alta fidelidad")
         self._log(f"Canción: {input_path.name}")
         self._log(f"Hardware: {self.hardware_info['hardware_badge']}")
-        self._log(f"Modelo: {model_info['display_name']}")
+        self._log(f"Modelo IA: {model_info['display_name']}")
         self._log(f"Carpeta destino: {out_path}")
-        self._log(f"Formato: {output_format} | Solapamiento: {overlap}")
+        self._log(f"Formato de exportación: {output_format} | Calidad: Overlap={overlap}")
         self._log("=" * 60)
 
         # Attach unified log handler and stream wrappers
@@ -93,7 +138,7 @@ class SeparationPipeline:
         separator_logger.addHandler(log_handler)
 
         try:
-            self._progress(3.0, "Cargando arquitectura y pesos del modelo...")
+            self._progress(3.0, "Cargando arquitectura neuronal y pesos...")
 
             if model_key == "hybrid_pro":
                 generated_files = self._run_hybrid(input_path, out_path, selected_stems, output_format, overlap)
@@ -107,37 +152,13 @@ class SeparationPipeline:
             # Scan output directory for all generated stem files
             result_stems = []
             valid_exts = {".wav", ".mp3", ".flac", ".m4a"}
-            for p in out_path.iterdir():
+            for p in sorted(out_path.iterdir()):
                 if p.is_file() and p.suffix.lower() in valid_exts and input_path.stem in p.stem:
                     size_mb = round(p.stat().st_size / (1024 * 1024), 2)
-                    label = "Pista"
-                    stem_type = "other"
-                    name_lower = p.name.lower()
-                    if "vocals" in name_lower or "vocal" in name_lower or "voz" in name_lower:
-                        label = "Voz (Vocals)"
-                        stem_type = "vocals"
-                    elif "instrumental" in name_lower or "inst" in name_lower:
-                        label = "Base Instrumental"
-                        stem_type = "instrumental"
-                    elif "drums" in name_lower or "bateria" in name_lower or "drum" in name_lower:
-                        label = "Batería (Drums)"
-                        stem_type = "drums"
-                    elif "bass" in name_lower or "bajo" in name_lower:
-                        label = "Bajo (Bass)"
-                        stem_type = "bass"
-                    elif "guitar" in name_lower or "guitarra" in name_lower:
-                        label = "Guitarra (Guitar)"
-                        stem_type = "guitar"
-                    elif "piano" in name_lower:
-                        label = "Piano (Piano)"
-                        stem_type = "piano"
-                    elif "other" in name_lower or "otros" in name_lower:
-                        label = "Otros / Sintetizadores"
-                        stem_type = "other"
-
+                    meta = resolve_stem_metadata(p.name)
                     result_stems.append({
-                        "label": label,
-                        "stem_type": stem_type,
+                        "label": meta["label"],
+                        "stem_type": meta["stem_type"],
                         "filename": p.name,
                         "full_path": str(p),
                         "size_mb": size_mb,
@@ -191,8 +212,8 @@ class SeparationPipeline:
 
         separator.load_model(model_filename=model_filename)
 
-        self._progress(10.0, "Iniciando análisis de espectro y separación por bandas...")
-        self._log("Procesando señal de audio con Transformer...")
+        self._progress(10.0, "Iniciando análisis espectral y separación de fuentes...")
+        self._log("Procesando señal de audio con Transformer de alta fidelidad...")
 
         raw_outputs = separator.separate(str(input_path))
 
@@ -213,7 +234,7 @@ class SeparationPipeline:
         overlap: int
     ) -> List[str]:
         self._log("--- ETAPA 1: Extracción Vocal Ultra-HD (Mel-Band RoFormer) ---")
-        self._progress(5.0, "Etapa 1/2: Extrayendo Voz e Instrumental puro...")
+        self._progress(5.0, "Etapa 1/2: Extrayendo Voz e Instrumental puro con Mel-Band RoFormer...")
 
         temp_dir = Path(out_path / "_temp_hybrid")
         temp_dir.mkdir(parents=True, exist_ok=True)
