@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Header
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Header, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -32,7 +32,7 @@ MODELS_DIR = PROJECT_ROOT / "models"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 STATIC_DIR = PROJECT_ROOT / "web" / "static"
 
-app = FastAPI(title="Stem Separator Studio API", version="2.5.0")
+app = FastAPI(title="Stem Separator Studio API", version="3.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -63,7 +63,7 @@ current_job: Dict[str, Any] = {
 class SeparateRequest(BaseModel):
     input_file: str
     output_dir: Optional[str] = None
-    preset_key: str = "vocals_inst"
+    preset_key: str = "full_multitrack"
     format: str = "WAV"
     quality: str = "fast"
     custom_stems: Optional[List[str]] = None
@@ -265,7 +265,7 @@ def start_separation(req: SeparateRequest):
     out_path = Path(output_dir).resolve()
     out_path.mkdir(parents=True, exist_ok=True)
 
-    preset_info = PRESETS.get(req.preset_key, PRESETS["vocals_inst"])
+    preset_info = PRESETS.get(req.preset_key, PRESETS["full_multitrack"])
     model_key = preset_info["model_key"]
     overlap = 4 if req.quality == "high" else 2
 
@@ -312,5 +312,10 @@ def start_separation(req: SeparateRequest):
 def serve_index():
     index_file = STATIC_DIR / "index.html"
     if index_file.exists():
-        return FileResponse(index_file)
+        headers = {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+        return FileResponse(index_file, headers=headers)
     return HTMLResponse("<h1>Stem Separator Studio</h1>")

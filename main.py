@@ -11,6 +11,17 @@ import uvicorn
 from pathlib import Path
 
 # UTF-8 and Stdout protection
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+if hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 if sys.stdout is None:
     sys.stdout = open(os.devnull, "w")
 if sys.stderr is None:
@@ -52,8 +63,8 @@ def main():
     url = f"http://127.0.0.1:{port}"
 
     print("=" * 60)
-    print("  🎧 STEM SEPARATOR STUDIO v2.5 ULTIMATE")
-    print("  Mel-Band RoFormer • DrumSep 6S • Karaoke • DeReverb • Demucs v4")
+    print("  STEM SEPARATOR STUDIO v3.0 ULTIMATE")
+    print("  Full Multitrack 12-Stems | Mel-Band RoFormer | DrumSep | Demucs")
     print("=" * 60)
     print(f"Servidor web local activo en: {url}")
     print("Abriendo interfaz de estudio en tu navegador...")
