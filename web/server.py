@@ -28,14 +28,31 @@ if sys.stdout is None:
 if sys.stderr is None:
     sys.stderr = open(os.devnull, "w")
 
+# Windows asyncio Proactor socket exception patch (Silences WinError 10054 permanently)
+if sys.platform == "win32":
+    try:
+        from asyncio.proactor_events import _ProactorBasePipeTransport
+        _orig_call_connection_lost = _ProactorBasePipeTransport._call_connection_lost
+
+        def _silenced_call_connection_lost(self, exc):
+            try:
+                _orig_call_connection_lost(self, exc)
+            except (ConnectionResetError, OSError):
+                pass
+
+        _ProactorBasePipeTransport._call_connection_lost = _silenced_call_connection_lost
+    except Exception:
+        pass
+
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 MODELS_DIR = PROJECT_ROOT / "models"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 UPLOADS_DIR = PROJECT_ROOT / "uploads"
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 STATIC_DIR = PROJECT_ROOT / "web" / "static"
+DESKTOP_DIR = Path(os.path.expanduser("~/Desktop"))
 
-app = FastAPI(title="Stem Separator Studio API", version="3.0.0")
+app = FastAPI(title="Stem Separator Studio API", version="3.5.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -128,7 +145,7 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             await websocket.receive_text()
-    except WebSocketDisconnect:
+    except (WebSocketDisconnect, ConnectionResetError):
         if websocket in connected_websockets:
             connected_websockets.remove(websocket)
 
@@ -154,14 +171,14 @@ def get_presets():
 @app.post("/api/upload")
 async def upload_audio_file(file: UploadFile = File(...)):
     """
-    Direct in-browser audio file upload. Instant, 100% reliable across all OS/browsers.
+    Direct in-browser audio file upload with default output folder on the Desktop.
     """
     try:
         dest_path = UPLOADS_DIR / file.filename
         with open(dest_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        default_out = str(PROJECT_ROOT / f"{Path(file.filename).stem}_Stems")
+        default_out = str(DESKTOP_DIR / f"{Path(file.filename).stem}_Stems")
         return {
             "file_path": str(dest_path.resolve()),
             "filename": file.filename,
@@ -283,7 +300,7 @@ def start_separation(req: SeparateRequest):
     if not input_path.exists():
         raise HTTPException(status_code=400, detail="Audio file does not exist")
 
-    output_dir = req.output_dir or str(input_path.parent / f"{input_path.stem}_Stems")
+    output_dir = req.output_dir or str(DESKTOP_DIR / f"{input_path.stem}_Stems")
     out_path = Path(output_dir).resolve()
     out_path.mkdir(parents=True, exist_ok=True)
 

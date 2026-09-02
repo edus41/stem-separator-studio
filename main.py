@@ -31,13 +31,21 @@ PROJECT_ROOT = Path(__file__).parent.resolve()
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-# Windows asyncio Proactor socket exception filter
-def silence_winerror_10054(loop, context):
-    exception = context.get("exception")
-    if isinstance(exception, ConnectionResetError) or (isinstance(exception, OSError) and getattr(exception, "winerror", None) == 10054):
-        return  # Harmless Windows socket reset when browser closes or refreshes
-    if loop.default_exception_handler:
-        loop.default_exception_handler(context)
+# Windows asyncio Proactor socket exception patch (Silences WinError 10054 permanently)
+if sys.platform == "win32":
+    try:
+        from asyncio.proactor_events import _ProactorBasePipeTransport
+        _orig_call_connection_lost = _ProactorBasePipeTransport._call_connection_lost
+
+        def _silenced_call_connection_lost(self, exc):
+            try:
+                _orig_call_connection_lost(self, exc)
+            except (ConnectionResetError, OSError):
+                pass
+
+        _ProactorBasePipeTransport._call_connection_lost = _silenced_call_connection_lost
+    except Exception:
+        pass
 
 def find_free_port(start_port=7860):
     for port in range(start_port, start_port + 50):
@@ -51,20 +59,12 @@ def open_browser_delayed(url):
     webbrowser.open(url)
 
 def main():
-    if sys.platform == "win32":
-        try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.set_exception_handler(silence_winerror_10054)
-        except Exception:
-            pass
-
     port = find_free_port()
     url = f"http://127.0.0.1:{port}"
 
     print("=" * 60)
-    print("  STEM SEPARATOR STUDIO v3.0 ULTIMATE")
-    print("  Full Multitrack 12-Stems | Mel-Band RoFormer | DrumSep | Demucs")
+    print("  STEM SEPARATOR STUDIO v3.5 MASTER")
+    print("  Full Multitrack 14-Stems | Mel-Band RoFormer | DrumSep | Demucs")
     print("=" * 60)
     print(f"Servidor web local activo en: {url}")
     print("Abriendo interfaz de estudio en tu navegador...")
