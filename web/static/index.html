@@ -65,16 +65,24 @@
         <div>
           <h1 class="text-base font-bold text-white tracking-tight flex items-center gap-2">
             Stem Separator Studio
-            <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-semibold border border-blue-500/30">v3.0 Pro Max</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-semibold border border-blue-500/30">v3.0 Pro</span>
           </h1>
-          <p class="text-xs text-slate-400">Desglose Total 12-Stems • Mel-Band RoFormer • DrumSep • Demucs v4</p>
+          <p class="text-xs text-slate-400" data-i18n="tagline">Mel-Band RoFormer • DrumSep 6-Kit • Karaoke • DeReverb • Demucs v4</p>
         </div>
       </div>
 
-      <!-- Hardware Detection Badge -->
-      <div id="hw-badge" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/60 text-xs text-slate-300">
-        <span id="hw-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span id="hw-name" class="font-medium">Detectando hardware...</span>
+      <div class="flex items-center gap-3">
+        <!-- Language Switcher -->
+        <div class="flex items-center bg-slate-950/80 p-0.5 rounded-xl border border-slate-800 text-xs font-semibold">
+          <button id="lang-en" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition-all">EN</button>
+          <button id="lang-es" class="px-2.5 py-1 rounded-lg bg-blue-600 text-white transition-all">ES</button>
+        </div>
+
+        <!-- Hardware Detection Badge -->
+        <div id="hw-badge" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/60 text-xs text-slate-300">
+          <span id="hw-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="hw-name" class="font-medium">Detectando hardware...</span>
+        </div>
       </div>
     </div>
   </header>
@@ -82,12 +90,15 @@
   <!-- MAIN CONTAINER -->
   <main class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full space-y-8">
 
+    <!-- HIDDEN BROWSER FILE INPUT -->
+    <input type="file" id="browser-file-input" class="hidden" accept=".mp3,.wav,.flac,.m4a,.ogg,.aac,.wma">
+
     <!-- STEP 1: AUDIO FILE SELECTOR -->
     <section class="bg-slate-900/60 backdrop-blur-md rounded-2xl border border-slate-800/80 p-6 shadow-xl relative overflow-hidden">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-2">
           <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">1</span>
-          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300">Seleccionar Canción</h2>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300" data-i18n="step1_title">Seleccionar Canción</h2>
         </div>
       </div>
 
@@ -96,23 +107,25 @@
           <i data-lucide="music" class="w-7 h-7"></i>
         </div>
         <div id="file-info-container">
-          <h3 id="selected-filename" class="text-base font-semibold text-white">Arrastrá un archivo de audio o hacé clic para explorar</h3>
-          <p class="text-xs text-slate-400 mt-1">Soporta MP3, WAV, FLAC, M4A, OGG, AAC (Sin límite de tamaño)</p>
+          <h3 id="selected-filename" class="text-base font-semibold text-white" data-i18n="dropzone_prompt">Arrastrá un archivo de audio o hacé clic para explorar</h3>
+          <p class="text-xs text-slate-400 mt-1" data-i18n="dropzone_formats">Soporta MP3, WAV, FLAC, M4A, OGG, AAC (Sin límite de tamaño)</p>
         </div>
-        <button id="browse-btn" class="mt-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-blue-600/20 transition-all">
-          <i data-lucide="folder-open" class="w-4 h-4"></i> Explorar Archivos de Windows
-        </button>
+        <div class="flex items-center gap-2 mt-2">
+          <button id="browse-btn" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-blue-600/20 transition-all">
+            <i data-lucide="folder-open" class="w-4 h-4"></i> <span data-i18n="browse_btn">Explorar Archivo de Audio</span>
+          </button>
+        </div>
       </div>
 
       <!-- Destination Folder Row -->
       <div class="mt-4 flex items-center justify-between text-xs text-slate-400 bg-slate-950/50 rounded-xl px-4 py-2.5 border border-slate-800/60">
         <div class="flex items-center gap-2 truncate mr-4">
           <i data-lucide="folder" class="w-4 h-4 text-blue-400 shrink-0"></i>
-          <span class="text-slate-500">Destino:</span>
-          <span id="output-dir-text" class="text-slate-300 font-mono truncate">Misma carpeta que el audio original</span>
+          <span class="text-slate-500" data-i18n="dest_label">Destino:</span>
+          <span id="output-dir-text" class="text-slate-300 font-mono truncate" data-i18n="dest_default">Misma carpeta que el audio original</span>
         </div>
         <button id="change-dest-btn" class="text-blue-400 hover:text-blue-300 font-medium hover:underline shrink-0 flex items-center gap-1">
-          <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Cambiar
+          <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> <span data-i18n="change_dest">Cambiar</span>
         </button>
       </div>
     </section>
@@ -122,23 +135,25 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div class="flex items-center gap-2">
           <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">2</span>
-          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300">¿Qué querés separar?</h2>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300" data-i18n="step2_title">¿Qué querés separar?</h2>
         </div>
 
         <!-- Filter Category Tabs -->
         <div class="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-xs overflow-x-auto">
-          <button data-filter="all" class="cat-tab px-3 py-1.5 rounded-lg font-semibold bg-blue-600 text-white transition-all">Todos</button>
-          <button data-filter="master" class="cat-tab px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">🚀 Full Studio</button>
-          <button data-filter="vocals" class="cat-tab px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">🎤 Voces</button>
-          <button data-filter="drums" class="cat-tab px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">🥁 Batería</button>
-          <button data-filter="band" class="cat-tab px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">🎸 Instrumentos</button>
-          <button data-filter="clean" class="cat-tab px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">🧹 De-Reverb</button>
+          <button data-filter="all" class="cat-tab px-3 py-1.5 rounded-lg font-semibold bg-blue-600 text-white transition-all" data-i18n="cat_all">Todos</button>
+          <button data-filter="master" class="cat-tab px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all" data-i18n="cat_master">🚀 Full Studio</button>
+          <button data-filter="vocals" class="cat-tab px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all" data-i18n="cat_vocals">🎤 Voces</button>
+          <button data-filter="drums" class="cat-tab px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all" data-i18n="cat_drums">🥁 Batería</button>
+          <button data-filter="band" class="cat-tab px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all" data-i18n="cat_band">🎸 Instrumentos</button>
+          <button data-filter="clean" class="cat-tab px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all" data-i18n="cat_clean">🧹 De-Reverb</button>
         </div>
       </div>
 
-      <!-- FEATURED: FULL MULTITRACK (12 STEMS) -->
-      <div class="p-0.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 shadow-xl">
-        <label data-cat="master" class="preset-card relative flex flex-col p-6 rounded-2xl bg-slate-900 cursor-pointer hover:bg-slate-900/90 transition-all group">
+      <!-- Preset Cards Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="preset-container">
+        
+        <!-- 0. FEATURED: FULL MULTITRACK (12 STEMS) -->
+        <label data-cat="master" class="preset-card md:col-span-2 relative flex flex-col p-6 rounded-2xl border-2 border-indigo-500 bg-gradient-to-br from-indigo-950/40 via-slate-900 to-purple-950/40 cursor-pointer hover:border-indigo-400 transition-all group shadow-xl">
           <input type="radio" name="preset" value="full_multitrack" checked class="hidden">
           <div class="flex items-start justify-between">
             <div class="flex items-center gap-4">
@@ -147,8 +162,8 @@
               </div>
               <div>
                 <div class="flex items-center gap-2">
-                  <h3 class="text-base font-bold text-white group-hover:text-blue-400 transition-colors">🚀 Desglose Total Multitrack (12 Pistas de Estudio)</h3>
-                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/40">MÁXIMO PODER</span>
+                  <h3 class="text-base font-bold text-white group-hover:text-blue-400 transition-colors" data-i18n="preset_full_title">🚀 Desglose Total Multitrack (12 Pistas de Estudio)</h3>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/40" data-i18n="badge_max">MÁXIMO PODER</span>
                 </div>
                 <p class="text-xs text-indigo-300/90 font-medium mt-1">Cascada SOTA: Mel-Band + Karaoke + Demucs 6S + DrumSep</p>
               </div>
@@ -157,15 +172,11 @@
               <i data-lucide="check" class="w-3.5 h-3.5"></i>
             </span>
           </div>
-          <p class="text-xs text-slate-300 mt-4 leading-relaxed">
-            Separa <strong class="text-white">TODO</strong> en un solo clic: <strong class="text-blue-400">Voz Líder, Coros, Bajo, Guitarra, Piano, Sintes</strong> y la <strong class="text-purple-400">Batería desglosada en 6 piezas (Bombo, Caja, Toms, Hi-Hat, Ride y Crash)</strong> sin sangrado.
+          <p class="text-xs text-slate-300 mt-4 leading-relaxed" data-i18n="preset_full_desc">
+            Separa TODO en un solo clic: Voz Líder, Coros, Bajo, Guitarra, Piano, Sintes y Batería en 6 piezas (Bombo, Caja, Toms, Hi-Hat, Ride y Crash) sin sangrado.
           </p>
         </label>
-      </div>
 
-      <!-- Preset Cards Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="preset-container">
-        
         <!-- 1. Mel-Band RoFormer -->
         <label data-cat="vocals" class="preset-card relative flex flex-col p-5 rounded-xl border-2 border-slate-800 bg-slate-950/40 cursor-pointer hover:border-slate-700 transition-all group">
           <input type="radio" name="preset" value="vocals_inst" class="hidden">
@@ -175,7 +186,7 @@
                 <i data-lucide="mic" class="w-5 h-5"></i>
               </div>
               <div>
-                <h3 class="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">🌟 Voz y Base Instrumental</h3>
+                <h3 class="text-sm font-bold text-white group-hover:text-blue-400 transition-colors" data-i18n="preset_vocals_title">🌟 Voz y Base Instrumental</h3>
                 <p class="text-xs text-blue-400/80 font-medium mt-0.5">Mel-Band RoFormer Big SYHFT (Ultra-HD)</p>
               </div>
             </div>
@@ -183,7 +194,7 @@
               <i data-lucide="check" class="w-3 h-3"></i>
             </span>
           </div>
-          <p class="text-xs text-slate-400 mt-3 leading-relaxed">
+          <p class="text-xs text-slate-400 mt-3 leading-relaxed" data-i18n="preset_vocals_desc">
             El modelo #1 del mundo para aislar voces hiper-limpias sin sangrado instrumental.
           </p>
         </label>
@@ -197,7 +208,7 @@
                 <i data-lucide="disc" class="w-5 h-5"></i>
               </div>
               <div>
-                <h3 class="text-sm font-bold text-white group-hover:text-red-400 transition-colors">🥁 Batería Desglosada (6 Pistas)</h3>
+                <h3 class="text-sm font-bold text-white group-hover:text-red-400 transition-colors" data-i18n="preset_drumsep_title">🥁 Batería Desglosada (6 Pistas)</h3>
                 <p class="text-xs text-red-400/80 font-medium mt-0.5">MDX23C DrumSep aufr33-jarredou</p>
               </div>
             </div>
@@ -205,8 +216,8 @@
               <i data-lucide="check" class="w-3 h-3"></i>
             </span>
           </div>
-          <p class="text-xs text-slate-400 mt-3 leading-relaxed">
-            Descompone la batería en 6 pistas: <strong class="text-slate-300">Bombo, Caja, Toms, Hi-Hat, Ride y Crash</strong>.
+          <p class="text-xs text-slate-400 mt-3 leading-relaxed" data-i18n="preset_drumsep_desc">
+            Descompone la batería en 6 pistas: Bombo, Caja, Toms, Hi-Hat, Ride y Crash.
           </p>
         </label>
 
@@ -219,7 +230,7 @@
                 <i data-lucide="users" class="w-5 h-5"></i>
               </div>
               <div>
-                <h3 class="text-sm font-bold text-white group-hover:text-pink-400 transition-colors">🗣️ Voz Principal vs. Coros</h3>
+                <h3 class="text-sm font-bold text-white group-hover:text-pink-400 transition-colors" data-i18n="preset_karaoke_title">🗣️ Voz Principal vs. Coros</h3>
                 <p class="text-xs text-pink-400/80 font-medium mt-0.5">Mel-Band RoFormer Karaoke Viperx</p>
               </div>
             </div>
@@ -227,8 +238,8 @@
               <i data-lucide="check" class="w-3 h-3"></i>
             </span>
           </div>
-          <p class="text-xs text-slate-400 mt-3 leading-relaxed">
-            Aisla la <strong class="text-slate-300">voz solista/líder</strong> por un lado y separa las <strong class="text-slate-300">segundas voces y coros</strong> por el otro.
+          <p class="text-xs text-slate-400 mt-3 leading-relaxed" data-i18n="preset_karaoke_desc">
+            Aisla la voz solista/líder por un lado y separa las segundas voces y coros por el otro.
           </p>
         </label>
 
@@ -241,7 +252,7 @@
                 <i data-lucide="guitar" class="w-5 h-5"></i>
               </div>
               <div>
-                <h3 class="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">🎸 Banda Completa (6 Instrumentos)</h3>
+                <h3 class="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors" data-i18n="preset_demucs6_title">🎸 Banda Completa (6 Instrumentos)</h3>
                 <p class="text-xs text-emerald-400/80 font-medium mt-0.5">Demucs v4 6-Stems</p>
               </div>
             </div>
@@ -249,8 +260,8 @@
               <i data-lucide="check" class="w-3 h-3"></i>
             </span>
           </div>
-          <p class="text-xs text-slate-400 mt-3 leading-relaxed">
-            Separa en: <strong class="text-slate-300">Voz, Batería, Bajo, Guitarra, Piano y Sintes</strong>.
+          <p class="text-xs text-slate-400 mt-3 leading-relaxed" data-i18n="preset_demucs6_desc">
+            Separa en: Voz, Batería, Bajo, Guitarra, Piano y Sintes.
           </p>
         </label>
 
@@ -263,7 +274,7 @@
                 <i data-lucide="sparkles" class="w-5 h-5"></i>
               </div>
               <div>
-                <h3 class="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">🧹 De-Reverb / Limpieza de Eco</h3>
+                <h3 class="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors" data-i18n="preset_dereverb_title">🧹 De-Reverb / Limpieza de Eco</h3>
                 <p class="text-xs text-cyan-400/80 font-medium mt-0.5">Mel-Band RoFormer De-Reverb (19.17 dB)</p>
               </div>
             </div>
@@ -271,7 +282,7 @@
               <i data-lucide="check" class="w-3 h-3"></i>
             </span>
           </div>
-          <p class="text-xs text-slate-400 mt-3 leading-relaxed">
+          <p class="text-xs text-slate-400 mt-3 leading-relaxed" data-i18n="preset_dereverb_desc">
             Elimina la reverberación, acústica de sala y eco para dejar voces e instrumentos 100% secos.
           </p>
         </label>
@@ -285,7 +296,7 @@
                 <i data-lucide="sliders" class="w-5 h-5"></i>
               </div>
               <div>
-                <h3 class="text-sm font-bold text-white group-hover:text-amber-400 transition-colors">🎛️ Modo Estudio Master (Híbrido)</h3>
+                <h3 class="text-sm font-bold text-white group-hover:text-amber-400 transition-colors" data-i18n="preset_hybrid_title">🎛️ Modo Estudio Master (Híbrido)</h3>
                 <p class="text-xs text-amber-400/80 font-medium mt-0.5">Mel-Band RoFormer + Demucs en Cascada</p>
               </div>
             </div>
@@ -293,7 +304,7 @@
               <i data-lucide="check" class="w-3 h-3"></i>
             </span>
           </div>
-          <p class="text-xs text-slate-400 mt-3 leading-relaxed">
+          <p class="text-xs text-slate-400 mt-3 leading-relaxed" data-i18n="preset_hybrid_desc">
             Pipeline Pro: Voz pura con RoFormer y sub-separación con Demucs para cero sangrado vocal en instrumentos.
           </p>
         </label>
@@ -307,12 +318,12 @@
         
         <!-- Quality Speed Mode -->
         <div class="flex items-center gap-4">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Modo de Calidad:</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400" data-i18n="quality_label">Modo de Calidad:</span>
           <div class="flex items-center gap-2 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
-            <button id="qual-fast" class="qual-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white transition-all">
+            <button id="qual-fast" class="qual-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white transition-all" data-i18n="qual_fast">
               ⚡ Rápido (Recomendado)
             </button>
-            <button id="qual-high" class="qual-btn px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all">
+            <button id="qual-high" class="qual-btn px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all" data-i18n="qual_high">
               💎 Máxima Precisión (Estudio)
             </button>
           </div>
@@ -320,11 +331,11 @@
 
         <!-- Format Selector -->
         <div class="flex items-center gap-3">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Formato:</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400" data-i18n="format_label">Formato:</span>
           <select id="format-select" class="bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
-            <option value="WAV">WAV (Audio sin pérdida)</option>
+            <option value="WAV">WAV (Audio sin pérdida / Lossless)</option>
             <option value="MP3">MP3 (320 kbps)</option>
-            <option value="FLAC">FLAC (Comprimido sin pérdida)</option>
+            <option value="FLAC">FLAC (Lossless Compressed)</option>
           </select>
         </div>
 
@@ -333,7 +344,7 @@
       <!-- Action Button -->
       <button id="start-btn" class="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-base shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-3 transition-all transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed">
         <i data-lucide="play" class="w-5 h-5 fill-current"></i>
-        <span id="start-btn-text">INICIAR SEPARACIÓN DE PISTAS</span>
+        <span id="start-btn-text" data-i18n="start_btn">INICIAR SEPARACIÓN DE PISTAS</span>
       </button>
 
       <!-- LIVE PROGRESS SECTION -->
@@ -357,7 +368,7 @@
         <!-- Terminal Log Drawer -->
         <details id="log-details" open class="text-xs text-slate-400 bg-slate-950/80 rounded-xl border border-slate-800/80 p-3">
           <summary class="cursor-pointer font-mono text-[11px] text-slate-500 hover:text-slate-400 select-none flex items-center justify-between">
-            <span>Consola de inferencia en tiempo real</span>
+            <span data-i18n="terminal_title">Consola de inferencia en tiempo real</span>
             <span id="log-count" class="text-[10px] text-slate-600 font-mono">0 eventos</span>
           </summary>
           <pre id="log-terminal" class="mt-2 font-mono text-[11px] text-slate-400 whitespace-pre-wrap max-h-48 overflow-y-auto leading-relaxed"></pre>
@@ -374,17 +385,17 @@
             <i data-lucide="check-circle-2" class="w-6 h-6"></i>
           </div>
           <div>
-            <h2 class="text-base font-bold text-white">¡Separación Finalizada con Éxito!</h2>
-            <p class="text-xs text-slate-400">Escuchá tus pistas aisladas, descargalas en ZIP o abrí la carpeta</p>
+            <h2 class="text-base font-bold text-white" data-i18n="results_title">¡Separación Finalizada con Éxito!</h2>
+            <p class="text-xs text-slate-400" data-i18n="results_subtitle">Escuchá tus pistas aisladas, descargalas en ZIP o abrí la carpeta</p>
           </div>
         </div>
         
         <div class="flex items-center gap-3">
           <a id="download-zip-btn" href="/api/download-zip" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-lg shadow-blue-600/20 shrink-0">
-            <i data-lucide="download" class="w-4 h-4"></i> Descargar Todo (.ZIP)
+            <i data-lucide="download" class="w-4 h-4"></i> <span data-i18n="download_zip_btn">Descargar Todo (.ZIP)</span>
           </a>
           <button id="open-folder-btn" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold flex items-center gap-2 border border-slate-700 transition-all shadow-md shrink-0">
-            <i data-lucide="folder-open" class="w-4 h-4 text-emerald-400"></i> Abrir Carpeta
+            <i data-lucide="folder-open" class="w-4 h-4 text-emerald-400"></i> <span data-i18n="open_folder_btn">Abrir Carpeta</span>
           </button>
         </div>
       </div>
@@ -397,14 +408,134 @@
 
   </main>
 
-  <!-- JAVASCRIPT APPLICATION LOGIC -->
+  <!-- JAVASCRIPT I18N AND APPLICATION LOGIC -->
   <script>
+    const TRANSLATIONS = {
+      es: {
+        tagline: "Desglose Total 12-Stems • Mel-Band RoFormer • DrumSep • Demucs v4",
+        step1_title: "1. Seleccionar Canción",
+        dropzone_prompt: "Arrastrá un archivo de audio o hacé clic para explorar",
+        dropzone_formats: "Soporta MP3, WAV, FLAC, M4A, OGG, AAC (Sin límite de tamaño)",
+        browse_btn: "Explorar Archivo de Audio",
+        dest_label: "Destino:",
+        dest_default: "Misma carpeta que el audio original",
+        change_dest: "Cambiar",
+        step2_title: "2. ¿Qué querés separar?",
+        cat_all: "Todos",
+        cat_master: "🚀 Full Studio",
+        cat_vocals: "🎤 Voces",
+        cat_drums: "🥁 Batería",
+        cat_band: "🎸 Instrumentos",
+        cat_clean: "🧹 De-Reverb",
+        badge_max: "MÁXIMO PODER",
+        preset_full_title: "🚀 Desglose Total Multitrack (12 Pistas de Estudio)",
+        preset_full_desc: "Separa TODO en un solo clic: Voz Líder, Coros, Bajo, Guitarra, Piano, Sintes y Batería en 6 piezas (Bombo, Caja, Toms, Hi-Hat, Ride y Crash) sin sangrado.",
+        preset_vocals_title: "🌟 Voz y Base Instrumental",
+        preset_vocals_desc: "El modelo #1 del mundo para aislar voces hiper-limpias sin sangrado instrumental.",
+        preset_drumsep_title: "🥁 Batería Desglosada (6 Pistas)",
+        preset_drumsep_desc: "Descompone la batería en 6 pistas: Bombo, Caja, Toms, Hi-Hat, Ride y Crash.",
+        preset_karaoke_title: "🗣️ Voz Principal vs. Coros",
+        preset_karaoke_desc: "Aisla la voz solista/líder por un lado y separa las segundas voces y coros por el otro.",
+        preset_demucs6_title: "🎸 Banda Completa (6 Instrumentos)",
+        preset_demucs6_desc: "Separa en: Voz, Batería, Bajo, Guitarra, Piano y Sintes.",
+        preset_dereverb_title: "🧹 De-Reverb / Limpieza de Eco",
+        preset_dereverb_desc: "Elimina la reverberación, acústica de sala y eco para dejar voces e instrumentos 100% secos.",
+        preset_hybrid_title: "🎛️ Modo Estudio Master (Híbrido)",
+        preset_hybrid_desc: "Pipeline Pro: Voz pura con RoFormer y sub-separación con Demucs para cero sangrado vocal en instrumentos.",
+        quality_label: "Modo de Calidad:",
+        qual_fast: "⚡ Rápido (Recomendado)",
+        qual_high: "💎 Máxima Precisión (Estudio)",
+        format_label: "Formato:",
+        start_btn: "INICIAR SEPARACIÓN DE PISTAS",
+        separating_btn: "SEPARANDO PISTAS...",
+        separate_another_btn: "SEPARAR OTRO AUDIO",
+        terminal_title: "Consola de inferencia en tiempo real",
+        results_title: "¡Separación Finalizada con Éxito!",
+        results_subtitle: "Escuchá tus pistas aisladas, descargalas en ZIP o abrí la carpeta",
+        download_zip_btn: "Descargar Todo (.ZIP)",
+        open_folder_btn: "Abrir Carpeta",
+        uploading: "Cargando archivo de audio...",
+        solo: "SOLO"
+      },
+      en: {
+        tagline: "Full Multitrack 12-Stems • Mel-Band RoFormer • DrumSep • Demucs v4",
+        step1_title: "1. Select Audio Track",
+        dropzone_prompt: "Drag & drop an audio file or click to browse",
+        dropzone_formats: "Supports MP3, WAV, FLAC, M4A, OGG, AAC (No size limit)",
+        browse_btn: "Browse Audio File",
+        dest_label: "Destination:",
+        dest_default: "Same folder as original audio",
+        change_dest: "Change",
+        step2_title: "2. What do you want to separate?",
+        cat_all: "All",
+        cat_master: "🚀 Full Studio",
+        cat_vocals: "🎤 Vocals",
+        cat_drums: "🥁 Drums",
+        cat_band: "🎸 Instruments",
+        cat_clean: "🧹 De-Reverb",
+        badge_max: "MAXIMUM POWER",
+        preset_full_title: "🚀 Full Studio Multitrack (12 Isolated Stems)",
+        preset_full_desc: "Deconstruct EVERYTHING in one click: Lead Vocals, Backing Vocals, Bass, Guitar, Piano, Synths, and 6-Piece Drum Kit (Kick, Snare, Toms, Hi-Hat, Ride, Crash) with zero bleed.",
+        preset_vocals_title: "🌟 Vocals & Instrumental Track",
+        preset_vocals_desc: "World #1 AI architecture for ultra-pure vocal isolation with zero instrumental bleed.",
+        preset_drumsep_title: "🥁 6-Piece Drum Kit Breakdown",
+        preset_drumsep_desc: "Dissects drum mix into: Kick, Snare, Toms, Hi-Hat, Ride, and Crash cymbals.",
+        preset_karaoke_title: "🗣️ Lead Vocals vs. Backing Vocals",
+        preset_karaoke_desc: "Isolates lead vocalists and splits backing choirs, harmonies, and secondary vocals.",
+        preset_demucs6_title: "🎸 Full Band (6 Instruments)",
+        preset_demucs6_desc: "Separates into: Vocals, Drums, Bass, Guitar, Piano, and Synths/Other.",
+        preset_dereverb_title: "🧹 De-Reverb / Room Acoustic Cleaner",
+        preset_dereverb_desc: "Removes room reflections, reverb, and echo for 100% dry studio tracks (19.17 dB SDR).",
+        preset_hybrid_title: "🎛️ Hybrid Studio Master Cascade",
+        preset_hybrid_desc: "Pro Cascade: Pure vocal extraction + Demucs separation for zero-vocal-bleed instruments.",
+        quality_label: "Quality Mode:",
+        qual_fast: "⚡ Fast (Recommended)",
+        qual_high: "💎 Studio Precision (High Overlap)",
+        format_label: "Format:",
+        start_btn: "START STEM SEPARATION",
+        separating_btn: "SEPARATING AUDIO STEMS...",
+        separate_another_btn: "SEPARATE ANOTHER TRACK",
+        terminal_title: "Real-Time Neural Inference Console",
+        results_title: "Separation Completed Successfully!",
+        results_subtitle: "Listen to isolated stems, download ZIP archive, or open destination folder",
+        download_zip_btn: "Download All (.ZIP)",
+        open_folder_btn: "Open Output Folder",
+        uploading: "Uploading audio track...",
+        solo: "SOLO"
+      }
+    };
+
+    let currentLang = localStorage.getItem('app_lang') || 'es';
     let selectedFilePath = null;
     let customOutputDir = null;
     let activeQuality = 'fast';
     let ws = null;
     let logCount = 0;
 
+    function applyLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('app_lang', lang);
+
+      const dict = TRANSLATIONS[lang] || TRANSLATIONS.es;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[key]) {
+          el.innerText = dict[key];
+        }
+      });
+
+      if (lang === 'en') {
+        document.getElementById('lang-en').className = "px-2.5 py-1 rounded-lg bg-blue-600 text-white transition-all";
+        document.getElementById('lang-es').className = "px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition-all";
+      } else {
+        document.getElementById('lang-es').className = "px-2.5 py-1 rounded-lg bg-blue-600 text-white transition-all";
+        document.getElementById('lang-en').className = "px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition-all";
+      }
+    }
+
+    document.getElementById('lang-en').addEventListener('click', () => applyLanguage('en'));
+    document.getElementById('lang-es').addEventListener('click', () => applyLanguage('es'));
+    applyLanguage(currentLang);
     lucide.createIcons();
 
     // Check initial state from REST API on page load
@@ -468,7 +599,7 @@
       term.innerText += msg + '\n';
       term.scrollTop = term.scrollHeight;
       logCount++;
-      document.getElementById('log-count').innerText = `${logCount} eventos`;
+      document.getElementById('log-count').innerText = `${logCount} logs`;
     }
 
     function updateProgress(percent, stage, chunk, totalChunks, eta) {
@@ -484,7 +615,7 @@
       const chunkBadge = document.getElementById('chunk-badge');
       if (chunk && totalChunks) {
         chunkBadge.classList.remove('hidden');
-        chunkBadge.innerText = `Bloque ${chunk}/${totalChunks} ${eta ? '• ETA: ' + eta : ''}`;
+        chunkBadge.innerText = `${chunk}/${totalChunks} ${eta ? '• ETA: ' + eta : ''}`;
       } else {
         chunkBadge.classList.add('hidden');
       }
@@ -508,7 +639,7 @@
         term.innerText = job.logs.join('\n') + '\n';
         term.scrollTop = term.scrollHeight;
         logCount = job.logs.length;
-        document.getElementById('log-count').innerText = `${logCount} eventos`;
+        document.getElementById('log-count').innerText = `${logCount} logs`;
       }
 
       if (job.status === 'processing') {
@@ -516,12 +647,85 @@
         updateProgress(job.percent, job.stage, job.chunk, job.total_chunks, job.eta);
         const btn = document.getElementById('start-btn');
         btn.disabled = true;
-        btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>SEPARANDO PISTAS...</span>`;
+        const dict = TRANSLATIONS[currentLang];
+        btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>${dict.separating_btn}</span>`;
         lucide.createIcons();
       } else if (job.status === 'completed' && job.stems && job.stems.length > 0) {
         onSeparationComplete(job);
       }
     }
+
+    // Instant File Picker & Upload logic
+    const fileInput = document.getElementById('browser-file-input');
+
+    async function handleSelectedFile(file) {
+      if (!file) return;
+      document.getElementById('selected-filename').innerHTML = `⏳ <span class="text-blue-400 font-bold">${file.name} (uploading...)</span>`;
+      
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.file_path) {
+          selectedFilePath = data.file_path;
+          document.getElementById('selected-filename').innerHTML = `🎵 <span class="text-blue-400 font-bold">${data.filename}</span>`;
+          document.getElementById('output-dir-text').innerText = data.default_output_dir;
+          customOutputDir = data.default_output_dir;
+        }
+      } catch (err) {
+        alert('Error loading file: ' + err);
+      }
+    }
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleSelectedFile(e.target.files[0]);
+      }
+    });
+
+    document.getElementById('browse-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      fileInput.click();
+    });
+
+    const dropzone = document.getElementById('dropzone');
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('border-blue-500', 'bg-blue-950/20');
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove('border-blue-500', 'bg-blue-950/20');
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('border-blue-500', 'bg-blue-950/20');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleSelectedFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    // Browse destination folder
+    document.getElementById('change-dest-btn').addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/browse-folder', { method: 'POST' });
+        const data = await res.json();
+        if (data.folder_path) {
+          customOutputDir = data.folder_path;
+          document.getElementById('output-dir-text').innerText = customOutputDir;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
 
     // Category Tabs Filtering
     document.querySelectorAll('.cat-tab').forEach(tab => {
@@ -546,16 +750,12 @@
     document.querySelectorAll('.preset-card').forEach(card => {
       card.addEventListener('click', () => {
         document.querySelectorAll('.preset-card').forEach(c => {
-          c.classList.remove('border-blue-500', 'bg-blue-950/20');
-          if (!c.classList.contains('bg-slate-900')) {
-            c.classList.add('border-slate-800', 'bg-slate-950/40');
-          }
+          c.classList.remove('border-indigo-500', 'border-blue-500', 'bg-blue-950/20');
+          c.classList.add('border-slate-800');
           c.querySelector('.check-icon').classList.add('hidden');
         });
         card.classList.remove('border-slate-800');
-        if (!card.classList.contains('bg-slate-900')) {
-          card.classList.add('border-blue-500', 'bg-blue-950/20');
-        }
+        card.classList.add('border-indigo-500', 'bg-blue-950/20');
         card.querySelector('.check-icon').classList.remove('hidden');
         card.querySelector('input[type="radio"]').checked = true;
       });
@@ -573,60 +773,26 @@
       document.getElementById('qual-fast').className = "qual-btn px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all";
     });
 
-    // Browse file
-    async function triggerBrowseFile() {
-      try {
-        const res = await fetch('/api/browse-file', { method: 'POST' });
-        const data = await res.json();
-        if (data.file_path) {
-          selectedFilePath = data.file_path;
-          document.getElementById('selected-filename').innerHTML = `🎵 <span class="text-blue-400 font-bold">${data.filename}</span>`;
-          document.getElementById('output-dir-text').innerText = data.default_output_dir;
-          customOutputDir = data.default_output_dir;
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    document.getElementById('browse-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      triggerBrowseFile();
-    });
-    document.getElementById('dropzone').addEventListener('click', triggerBrowseFile);
-
-    // Browse destination folder
-    document.getElementById('change-dest-btn').addEventListener('click', async () => {
-      try {
-        const res = await fetch('/api/browse-folder', { method: 'POST' });
-        const data = await res.json();
-        if (data.folder_path) {
-          customOutputDir = data.folder_path;
-          document.getElementById('output-dir-text').innerText = customOutputDir;
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    });
-
     // Start Separation
     document.getElementById('start-btn').addEventListener('click', async () => {
       if (!selectedFilePath) {
-        alert('Por favor seleccioná un archivo de música haciendo clic en "Explorar Archivos".');
+        alert(currentLang === 'es' ? 'Por favor seleccioná un archivo de audio haciendo clic en el recuadro.' : 'Please select an audio file first.');
         return;
       }
 
       const preset = document.querySelector('input[name="preset"]:checked').value;
       const format = document.getElementById('format-select').value;
       const btn = document.getElementById('start-btn');
+      const dict = TRANSLATIONS[currentLang];
 
       btn.disabled = true;
-      btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>SEPARANDO PISTAS...</span>`;
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>${dict.separating_btn}</span>`;
       lucide.createIcons();
 
       document.getElementById('results-section').classList.add('hidden');
       document.getElementById('log-terminal').innerText = '';
       logCount = 0;
-      updateProgress(2, 'Preparando motor de inferencia...');
+      updateProgress(2, currentLang === 'es' ? 'Iniciando motor neuronal...' : 'Starting neural engine...');
 
       try {
         await fetch('/api/separate', {
@@ -641,18 +807,19 @@
           })
         });
       } catch (err) {
-        alert('Error al iniciar la separación: ' + err);
+        alert('Error: ' + err);
         btn.disabled = false;
       }
     });
 
     function onSeparationComplete(data) {
       const btn = document.getElementById('start-btn');
+      const dict = TRANSLATIONS[currentLang];
       btn.disabled = false;
-      btn.innerHTML = `<i data-lucide="play" class="w-5 h-5 fill-current"></i> <span>SEPARAR OTRO AUDIO</span>`;
+      btn.innerHTML = `<i data-lucide="play" class="w-5 h-5 fill-current"></i> <span>${dict.separate_another_btn}</span>`;
       lucide.createIcons();
 
-      updateProgress(100, '¡Separación completada con éxito!');
+      updateProgress(100, dict.results_title);
       document.getElementById('results-section').classList.remove('hidden');
 
       const listContainer = document.getElementById('stems-list');
@@ -667,14 +834,14 @@
               <span class="text-sm font-bold text-white">${stem.label}</span>
               <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">${stem.size_mb} MB</span>
             </div>
-            <a href="${stem.url}" download="${stem.filename}" class="text-slate-400 hover:text-blue-400 p-1 transition-colors" title="Descargar pista individual">
+            <a href="${stem.url}" download="${stem.filename}" class="text-slate-400 hover:text-blue-400 p-1 transition-colors" title="Download stem">
               <i data-lucide="download" class="w-4 h-4"></i>
             </a>
           </div>
           <audio id="audio-${idx}" controls preload="metadata" class="w-full h-9 rounded-lg outline-none bg-slate-900" src="${stem.url}"></audio>
           <div class="flex items-center justify-between text-[11px] text-slate-500 font-mono">
             <span class="truncate max-w-[240px]">${stem.filename}</span>
-            <button class="solo-btn text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px]" data-audio="audio-${idx}">SOLO</button>
+            <button class="solo-btn text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px]" data-audio="audio-${idx}">${dict.solo}</button>
           </div>
         `;
         listContainer.appendChild(card);
@@ -684,7 +851,6 @@
       document.querySelectorAll('.solo-btn').forEach(soloBtn => {
         soloBtn.addEventListener('click', () => {
           const targetId = soloBtn.getAttribute('data-audio');
-          const targetAudio = document.getElementById(targetId);
           const allAudios = document.querySelectorAll('audio');
 
           const isSolo = soloBtn.classList.contains('bg-blue-600');
@@ -717,9 +883,9 @@
     function onSeparationError(msg) {
       const btn = document.getElementById('start-btn');
       btn.disabled = false;
-      btn.innerHTML = `<i data-lucide="play" class="w-5 h-5 fill-current"></i> <span>REINTENTAR SEPARACIÓN</span>`;
+      btn.innerHTML = `<i data-lucide="play" class="w-5 h-5 fill-current"></i> <span>RETRY</span>`;
       lucide.createIcons();
-      alert('Error durante la separación: ' + msg);
+      alert('Separation Error: ' + msg);
     }
   </script>
 </body>

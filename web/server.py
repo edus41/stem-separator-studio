@@ -5,13 +5,14 @@ import sys
 import json
 import zipfile
 import io
+import shutil
 import asyncio
 import threading
 import subprocess
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Header, Response
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Header, UploadFile, File
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -30,6 +31,8 @@ if sys.stderr is None:
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 MODELS_DIR = PROJECT_ROOT / "models"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
+UPLOADS_DIR = PROJECT_ROOT / "uploads"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 STATIC_DIR = PROJECT_ROOT / "web" / "static"
 
 app = FastAPI(title="Stem Separator Studio API", version="3.0.0")
@@ -49,7 +52,7 @@ main_event_loop: Optional[asyncio.AbstractEventLoop] = None
 current_job: Dict[str, Any] = {
     "status": "idle",
     "percent": 0.0,
-    "stage": "Listo. Seleccioná una canción para comenzar.",
+    "stage": "Ready. Select an audio track to begin.",
     "chunk": 0,
     "total_chunks": 0,
     "elapsed": "",
@@ -93,7 +96,7 @@ def broadcast_event(event: Dict[str, Any]):
     elif event_type == "completed":
         current_job["status"] = "completed"
         current_job["percent"] = 100.0
-        current_job["stage"] = "¡Separación completada con éxito!"
+        current_job["stage"] = "Separation completed successfully!"
         current_job["stems"] = event.get("stems", [])
         current_job["output_dir"] = event.get("output_dir")
     elif event_type == "error":
@@ -148,9 +151,28 @@ def get_presets():
         "stem_labels": STEM_LABELS
     }
 
+@app.post("/api/upload")
+async def upload_audio_file(file: UploadFile = File(...)):
+    """
+    Direct in-browser audio file upload. Instant, 100% reliable across all OS/browsers.
+    """
+    try:
+        dest_path = UPLOADS_DIR / file.filename
+        with open(dest_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        default_out = str(PROJECT_ROOT / f"{Path(file.filename).stem}_Stems")
+        return {
+            "file_path": str(dest_path.resolve()),
+            "filename": file.filename,
+            "default_output_dir": default_out
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/browse-file")
 def browse_file():
-    """Opens native OS file explorer dialog safely without Tkinter."""
+    """Opens native OS file explorer dialog."""
     file_path = pick_audio_file()
     if file_path:
         p = Path(file_path).resolve()
@@ -160,7 +182,7 @@ def browse_file():
 
 @app.post("/api/browse-folder")
 def browse_folder():
-    """Opens native OS folder picker dialog safely without Tkinter."""
+    """Opens native OS folder picker dialog."""
     folder_path = pick_folder()
     if folder_path:
         p = Path(folder_path).resolve()
@@ -181,7 +203,7 @@ def open_folder(data: Dict[str, str]):
             return {"success": True}
         except Exception as e:
             return {"success": False, "error": str(e)}
-    return {"success": False, "error": "Carpeta no encontrada"}
+    return {"success": False, "error": "Folder not found"}
 
 @app.get("/api/audio/{filename}")
 def stream_audio(filename: str, request: Request, range: Optional[str] = Header(None)):
@@ -194,7 +216,7 @@ def stream_audio(filename: str, request: Request, range: Optional[str] = Header(
 
     file_path = Path(out_dir_str) / filename
     if not file_path.exists() or not file_path.is_file():
-        raise HTTPException(status_code=404, detail="Archivo de audio no encontrado")
+        raise HTTPException(status_code=404, detail="Audio file not found")
 
     file_size = file_path.stat().st_size
     media_type = "audio/wav" if filename.endswith(".wav") else "audio/mpeg"
@@ -233,12 +255,12 @@ def download_all_zip():
     """Packages all generated stems into a ZIP file for one-click download."""
     out_dir_str = current_job.get("output_dir")
     if not out_dir_str or not Path(out_dir_str).exists():
-        raise HTTPException(status_code=404, detail="No hay archivos generados para descargar")
+        raise HTTPException(status_code=404, detail="No files available to download")
 
     out_path = Path(out_dir_str)
     audio_files = [p for p in out_path.iterdir() if p.is_file() and p.suffix.lower() in [".wav", ".mp3", ".flac", ".m4a"]]
     if not audio_files:
-        raise HTTPException(status_code=404, detail="No se encontraron stems de audio en la carpeta")
+        raise HTTPException(status_code=404, detail="No audio stems found in folder")
 
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
@@ -259,7 +281,7 @@ def start_separation(req: SeparateRequest):
 
     input_path = Path(req.input_file).resolve()
     if not input_path.exists():
-        raise HTTPException(status_code=400, detail="El archivo de audio no existe")
+        raise HTTPException(status_code=400, detail="Audio file does not exist")
 
     output_dir = req.output_dir or str(input_path.parent / f"{input_path.stem}_Stems")
     out_path = Path(output_dir).resolve()
@@ -272,12 +294,12 @@ def start_separation(req: SeparateRequest):
     # Reset job state
     current_job["status"] = "processing"
     current_job["percent"] = 1.0
-    current_job["stage"] = f"Iniciando separación con {preset_info['title']}..."
+    current_job["stage"] = f"Starting separation with {preset_info['title']}..."
     current_job["chunk"] = 0
     current_job["total_chunks"] = 0
     current_job["elapsed"] = ""
     current_job["eta"] = ""
-    current_job["logs"] = [f"Iniciando trabajo para: {input_path.name}"]
+    current_job["logs"] = [f"Starting separation job for: {input_path.name}"]
     current_job["stems"] = []
     current_job["output_dir"] = str(out_path)
     current_job["input_file"] = str(input_path)
