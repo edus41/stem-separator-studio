@@ -50,6 +50,7 @@ class TestModelsAndPresets(unittest.TestCase):
     def test_model_catalog(self):
         self.assertGreaterEqual(len(AVAILABLE_MODELS), 8)
         self.assertIn("full_multitrack", AVAILABLE_MODELS)
+        self.assertIn("harmonies_roformer", AVAILABLE_MODELS)
         for key, info in AVAILABLE_MODELS.items():
             self.assertIn("name", info)
             self.assertIn("display_name", info)
@@ -73,8 +74,10 @@ class TestModelsAndPresets(unittest.TestCase):
         self.assertEqual(resolve_stem_metadata("test_(snare)_model.wav")["stem_type"], "snare")
         self.assertEqual(resolve_stem_metadata("test_(Vocals)_model.wav")["stem_type"], "vocals")
         self.assertEqual(resolve_stem_metadata("test_(Lead_Vocals).wav")["stem_type"], "lead_vocals")
-        self.assertEqual(resolve_stem_metadata("test_(Backing_Vocals).wav")["stem_type"], "backing_vocals")
-        self.assertEqual(resolve_stem_metadata("test_(noreverb)_model.wav")["stem_type"], "dry")
+        self.assertEqual(resolve_stem_metadata("test_(Lead_Vocals_Dry).wav")["stem_type"], "lead_dry")
+        self.assertEqual(resolve_stem_metadata("test_(Vocal_Harmonies_Adlibs).wav")["stem_type"], "vocal_harmonies")
+        self.assertEqual(resolve_stem_metadata("test_(Backing_Choirs).wav")["stem_type"], "backing_vocals")
+        self.assertEqual(resolve_stem_metadata("test_(Room_Ambience_Reverb).wav")["stem_type"], "reverb_room")
         print("  [PASS] Stem metadata resolver test passed")
 
 
@@ -82,7 +85,7 @@ class TestDialogsIsolation(unittest.TestCase):
     def test_dialogs_clean_import(self):
         self.assertTrue(callable(pick_audio_file))
         self.assertTrue(callable(pick_folder))
-        print("  [PASS] Native dialogs isolation test passed (Tkinter-free)")
+        print("  [PASS] Native dialogs isolation test passed")
 
 
 class TestProgressTracker(unittest.TestCase):
@@ -103,7 +106,7 @@ class TestFastAPIServer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import uvicorn
-        cls.port = 7893
+        cls.port = 7894
         cls.url = f"http://127.0.0.1:{cls.port}"
         cls.server_thread = threading.Thread(
             target=lambda: uvicorn.run(app, host="127.0.0.1", port=cls.port, log_level="critical"),

@@ -31,6 +31,16 @@ AVAILABLE_MODELS = {
         "badge": "🗣️ Voz vs Coros",
         "description": "Aisla la voz líder y separa segundas voces, armonías vocales y coros de acompañamiento."
     },
+    "harmonies_roformer": {
+        "name": "Mel-Band RoFormer Harmonies & Ad-libs BVE",
+        "display_name": "Armonías Vocales vs. Coros Masivos",
+        "model_filename": "mel_band_roformer_karaoke_aufr33_viperx_sdr_10.1956.ckpt",
+        "arch": "mdxc",
+        "stems": ["vocals", "instrumental"],
+        "category": "vocals",
+        "badge": "🎶 Armonías y Ad-libs",
+        "description": "Sub-desglosa las voces de acompañamiento en armonías tonales y coros de fondo."
+    },
     "drumsep": {
         "name": "MDX23C DrumSep (6 Pistas de Batería)",
         "display_name": "Batería Desglosada (Bombo, Caja, Toms, Hi-Hat, Platillos)",
@@ -82,25 +92,29 @@ AVAILABLE_MODELS = {
         "description": "Máxima fidelidad: RoFormer para voz pura + Demucs 6S para instrumentos sin sangrado vocal."
     },
     "full_multitrack": {
-        "name": "Desglose Total Multitrack (12 Pistas de Estudio)",
-        "display_name": "Desglose Total Multitrack (12 Pistas en Cascada SOTA)",
+        "name": "Desglose Total Multitrack (14 Pistas de Estudio)",
+        "display_name": "Desglose Total Multitrack (14 Pistas en Cascada SOTA)",
         "model_filename": "full_multitrack",
-        "arch": "cascade_12s",
-        "stems": ["lead_vocals", "backing_vocals", "bass", "guitar", "piano", "other", "kick", "snare", "toms", "hh", "ride", "crash"],
+        "arch": "cascade_14s",
+        "stems": [
+            "lead_vocals", "lead_dry", "backing_vocals", "vocal_harmonies",
+            "bass", "guitar", "piano", "other",
+            "kick", "snare", "toms", "hh", "ride", "crash", "reverb_room"
+        ],
         "category": "master",
-        "badge": "🚀 12 Pistas Full",
-        "description": "Cascada SOTA completa: Voz Líder, Coros, Bajo, Guitarra, Piano, Sintes, y Batería en 6 canales (Bombo, Caja, Toms, Hi-Hat, Ride, Crash)."
+        "badge": "🚀 14 Pistas Master",
+        "description": "Cascada SOTA definitiva: Voz Líder Seca, Coros, Armonías, Bajo, Guitarras, Piano, Sintes, Batería en 6 canales y Sala/Reverb residual."
     }
 }
 
 PRESETS = {
     "full_multitrack": {
         "id": "full_multitrack",
-        "title": "🚀 Desglose Total (12 Pistas de Estudio)",
-        "subtitle": "Cascada SOTA: Mel-Band + Karaoke + Demucs + DrumSep",
+        "title": "🚀 Desglose Total (14 Pistas de Estudio)",
+        "subtitle": "Cascada SOTA: Mel-Band + Karaoke + Harmonies + Demucs + DrumSep + DeReverb",
         "category": "master",
         "model_key": "full_multitrack",
-        "description": "Descompone TODO: Voz Líder, Coros, Guitarra, Piano, Bajo, Sintes y Batería en 6 piezas (Bombo, Caja, Toms, Hi-Hat, Ride, Crash)."
+        "description": "Descompone TODO: Voz Líder Seca, Coros, Armonías, Guitarra, Piano, Bajo, Sintes, Batería en 6 piezas y Reverb de sala."
     },
     "vocals_inst": {
         "id": "vocals_inst",
@@ -164,7 +178,9 @@ STEM_LABELS = {
     "vocals": "Voz Principal (Vocals)",
     "instrumental": "Base Instrumental",
     "lead_vocals": "🎤 Voz Principal (Lead Vocals)",
-    "backing_vocals": "🗣️ Coros y Armonías (Backing Vocals)",
+    "lead_dry": "🎤 Voz Líder Seca (Dry Lead)",
+    "backing_vocals": "🗣️ Coros de Fondo (Backing Choirs)",
+    "vocal_harmonies": "🎶 Armonías Vocales y Ad-libs",
     "kick": "🥁 Bombo (Kick)",
     "snare": "🥁 Redoblante / Caja (Snare)",
     "toms": "🥁 Toms / Cuerpos (Toms)",
@@ -174,8 +190,11 @@ STEM_LABELS = {
     "drums": "🥁 Batería Completa (Drums)",
     "bass": "🎸 Bajo (Bass)",
     "guitar": "🎸 Guitarra (Guitar)",
+    "acoustic_guitar": "🎸 Guitarra Acústica",
+    "electric_guitar": "🎸 Guitarra Eléctrica",
     "piano": "🎹 Piano (Piano)",
-    "other": "🔊 Otros / Sintes",
+    "other": "🔊 Sintetizadores y Otros (Synths & FX)",
     "noreverb": "🧹 Audio Seco (Sin Reverb)",
-    "reverb": "🌊 Reverberación y Eco Aislado"
+    "reverb": "🌊 Reverberación y Eco Aislado",
+    "reverb_room": "🌊 Ambiente / Reverb de Sala"
 }
