@@ -80,10 +80,28 @@ AVAILABLE_MODELS = {
         "category": "master",
         "badge": "🎛️ Master Híbrido",
         "description": "Máxima fidelidad: RoFormer para voz pura + Demucs 6S para instrumentos sin sangrado vocal."
+    },
+    "full_multitrack": {
+        "name": "Desglose Total Multitrack (12 Pistas de Estudio)",
+        "display_name": "Desglose Total Multitrack (12 Pistas en Cascada SOTA)",
+        "model_filename": "full_multitrack",
+        "arch": "cascade_12s",
+        "stems": ["lead_vocals", "backing_vocals", "bass", "guitar", "piano", "other", "kick", "snare", "toms", "hh", "ride", "crash"],
+        "category": "master",
+        "badge": "🚀 12 Pistas Full",
+        "description": "Cascada SOTA completa: Voz Líder, Coros, Bajo, Guitarra, Piano, Sintes, y Batería en 6 canales (Bombo, Caja, Toms, Hi-Hat, Ride, Crash)."
     }
 }
 
 PRESETS = {
+    "full_multitrack": {
+        "id": "full_multitrack",
+        "title": "🚀 Desglose Total (12 Pistas de Estudio)",
+        "subtitle": "Cascada SOTA: Mel-Band + Karaoke + Demucs + DrumSep",
+        "category": "master",
+        "model_key": "full_multitrack",
+        "description": "Descompone TODO: Voz Líder, Coros, Guitarra, Piano, Bajo, Sintes y Batería en 6 piezas (Bombo, Caja, Toms, Hi-Hat, Ride, Crash)."
+    },
     "vocals_inst": {
         "id": "vocals_inst",
         "title": "🌟 Voz y Base Instrumental (Mel-Band RoFormer)",
@@ -92,14 +110,6 @@ PRESETS = {
         "model_key": "mel_band_roformer",
         "description": "La máxima calidad para aislar acapellas de estudio y bases instrumentales puras."
     },
-    "karaoke": {
-        "id": "karaoke",
-        "title": "🗣️ Voz Principal vs. Coros (Karaoke SOTA)",
-        "subtitle": "Mel-Band RoFormer Karaoke Viperx",
-        "category": "vocals",
-        "model_key": "karaoke_roformer",
-        "description": "Separa la voz principal por un lado y los coros / armonías vocales por el otro."
-    },
     "drumsep": {
         "id": "drumsep",
         "title": "🥁 Batería Desglosada en 6 Pistas (DrumSep)",
@@ -107,6 +117,14 @@ PRESETS = {
         "category": "drums",
         "model_key": "drumsep",
         "description": "Separa la batería en: Bombo, Caja/Redoblante, Toms, Hi-Hat, Ride y Crash."
+    },
+    "karaoke": {
+        "id": "karaoke",
+        "title": "🗣️ Voz Principal vs. Coros (Karaoke SOTA)",
+        "subtitle": "Mel-Band RoFormer Karaoke Viperx",
+        "category": "vocals",
+        "model_key": "karaoke_roformer",
+        "description": "Separa la voz principal por un lado y los coros / armonías vocales por el otro."
     },
     "demucs_6s": {
         "id": "demucs_6s",
@@ -145,19 +163,19 @@ PRESETS = {
 STEM_LABELS = {
     "vocals": "Voz Principal (Vocals)",
     "instrumental": "Base Instrumental",
-    "lead_vocals": "Voz Principal (Lead)",
-    "backing_vocals": "Coros y Armonías (Backing)",
-    "kick": "Bombo (Kick)",
-    "snare": "Redoblante / Caja (Snare)",
-    "toms": "Toms / Percusión",
-    "hh": "Hi-Hat (Charles)",
-    "ride": "Platillo Ride",
-    "crash": "Platillos Crash",
-    "drums": "Batería (Drums)",
-    "bass": "Bajo (Bass)",
-    "guitar": "Guitarra (Guitar)",
-    "piano": "Piano (Piano)",
-    "other": "Otros / Sintes",
-    "noreverb": "Audio Seco (Sin Reverb)",
-    "reverb": "Reverberación / Eco Aislado"
+    "lead_vocals": "🎤 Voz Principal (Lead Vocals)",
+    "backing_vocals": "🗣️ Coros y Armonías (Backing Vocals)",
+    "kick": "🥁 Bombo (Kick)",
+    "snare": "🥁 Redoblante / Caja (Snare)",
+    "toms": "🥁 Toms / Cuerpos (Toms)",
+    "hh": "🥁 Hi-Hat (Charles)",
+    "ride": "🥁 Platillo Ride",
+    "crash": "🥁 Platillos Crash",
+    "drums": "🥁 Batería Completa (Drums)",
+    "bass": "🎸 Bajo (Bass)",
+    "guitar": "🎸 Guitarra (Guitar)",
+    "piano": "🎹 Piano (Piano)",
+    "other": "🔊 Otros / Sintes",
+    "noreverb": "🧹 Audio Seco (Sin Reverb)",
+    "reverb": "🌊 Reverberación y Eco Aislado"
 }

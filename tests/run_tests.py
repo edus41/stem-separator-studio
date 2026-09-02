@@ -48,7 +48,8 @@ class TestHardwareModule(unittest.TestCase):
 
 class TestModelsAndPresets(unittest.TestCase):
     def test_model_catalog(self):
-        self.assertGreaterEqual(len(AVAILABLE_MODELS), 7)
+        self.assertGreaterEqual(len(AVAILABLE_MODELS), 8)
+        self.assertIn("full_multitrack", AVAILABLE_MODELS)
         for key, info in AVAILABLE_MODELS.items():
             self.assertIn("name", info)
             self.assertIn("display_name", info)
@@ -59,7 +60,8 @@ class TestModelsAndPresets(unittest.TestCase):
         print(f"  [PASS] Model catalog test passed ({len(AVAILABLE_MODELS)} models verified)")
 
     def test_presets_consistency(self):
-        self.assertGreaterEqual(len(PRESETS), 6)
+        self.assertGreaterEqual(len(PRESETS), 7)
+        self.assertIn("full_multitrack", PRESETS)
         for pid, preset in PRESETS.items():
             self.assertIn("title", preset)
             self.assertIn("model_key", preset)
@@ -70,6 +72,8 @@ class TestModelsAndPresets(unittest.TestCase):
         self.assertEqual(resolve_stem_metadata("test_(kick)_model.wav")["stem_type"], "kick")
         self.assertEqual(resolve_stem_metadata("test_(snare)_model.wav")["stem_type"], "snare")
         self.assertEqual(resolve_stem_metadata("test_(Vocals)_model.wav")["stem_type"], "vocals")
+        self.assertEqual(resolve_stem_metadata("test_(Lead_Vocals).wav")["stem_type"], "lead_vocals")
+        self.assertEqual(resolve_stem_metadata("test_(Backing_Vocals).wav")["stem_type"], "backing_vocals")
         self.assertEqual(resolve_stem_metadata("test_(noreverb)_model.wav")["stem_type"], "dry")
         print("  [PASS] Stem metadata resolver test passed")
 
@@ -99,7 +103,7 @@ class TestFastAPIServer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import uvicorn
-        cls.port = 7892
+        cls.port = 7893
         cls.url = f"http://127.0.0.1:{cls.port}"
         cls.server_thread = threading.Thread(
             target=lambda: uvicorn.run(app, host="127.0.0.1", port=cls.port, log_level="critical"),
@@ -120,6 +124,7 @@ class TestFastAPIServer(unittest.TestCase):
         self.assertEqual(req.status, 200)
         data = json.loads(req.read().decode("utf-8"))
         self.assertIn("presets", data)
+        self.assertIn("full_multitrack", data["presets"])
         self.assertIn("drumsep", data["presets"])
         self.assertIn("karaoke", data["presets"])
         print("  [PASS] API /api/presets test passed")
@@ -136,7 +141,7 @@ class TestFastAPIServer(unittest.TestCase):
         self.assertEqual(req.status, 200)
         html = req.read().decode("utf-8")
         self.assertIn("Stem Separator Studio", html)
-        self.assertIn("Mel-Band RoFormer", html)
+        self.assertIn("Desglose Total Multitrack", html)
         print("  [PASS] API / (SPA frontend) test passed")
 
 
